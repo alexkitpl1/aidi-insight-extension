@@ -248,10 +248,12 @@
   async function analyze(unlockCode) {
     renderStatus(`${t.checking}…`);
     try {
+      // Extension отдаёт HTML страницы — backend не может fetch kv.ee (Datadome).
+      const html_snapshot = document.documentElement.outerHTML.slice(0, 500_000);
       const start = await fetch(`${API}/api/analyze/listing`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url, unlock_code: unlockCode || undefined, lang }),
+        body: JSON.stringify({ url, unlock_code: unlockCode || undefined, lang, html_snapshot }),
       }).then(r => r.json());
       if (!start.task_id) throw new Error("no task");
       const t0 = Date.now();
