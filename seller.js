@@ -42,7 +42,7 @@ const FIELD_MAP = {
 };
 
 
-export function isSellerPage(url) {
+function isSellerPage(url) {
   for (const [src, pat] of Object.entries(SELLER_PATTERNS)) {
     if (pat.test(url)) return src;
   }
@@ -50,7 +50,7 @@ export function isSellerPage(url) {
 }
 
 
-export function detectFormFields(source) {
+function detectFormFields(source) {
   const map = FIELD_MAP[source] || FIELD_MAP["kv.ee"];
   const fields = {};
   for (const [key, sel] of Object.entries(map)) {
@@ -65,14 +65,14 @@ export function detectFormFields(source) {
 // Draft передаётся через query param ?aidi_draft_id=N или сохранённая в
 // chrome.storage.local (когда user на aidi.ee/create нажал «Опубликовать на kv.ee»).
 
-export async function fetchDraft(draftId, apiUrl = "https://api.aidi.ee") {
+async function fetchDraft(draftId, apiUrl = "https://api.aidi.ee") {
   const r = await fetch(`${apiUrl}/api/drafts/${draftId}`);
   if (!r.ok) throw new Error("draft not found");
   return r.json();
 }
 
 
-export function autofillForm(source, draft) {
+function autofillForm(source, draft) {
   const fields = detectFormFields(source);
   let filled = 0;
   if (fields.title && draft.title) {
@@ -113,7 +113,7 @@ export function autofillForm(source, draft) {
 // Debounced анализ description по мере набора.
 
 let checkTimer = null;
-export function attachLiveCheck(descTextarea, onSuggestion) {
+function attachLiveCheck(descTextarea, onSuggestion) {
   if (!descTextarea) return;
   descTextarea.addEventListener("input", () => {
     clearTimeout(checkTimer);
@@ -136,7 +136,7 @@ export function attachLiveCheck(descTextarea, onSuggestion) {
 // ── Photo quality gate ───────────────────────────────────────────────
 // Перехватываем file inputs, читаем FileReader → отправляем на quality-check.
 
-export function attachPhotoGate(fileInput, onReport) {
+function attachPhotoGate(fileInput, onReport) {
   if (!fileInput) return;
   fileInput.addEventListener("change", async (e) => {
     const files = Array.from(e.target.files || []);
@@ -156,7 +156,7 @@ export function attachPhotoGate(fileInput, onReport) {
 // ── Multi-portal publish ─────────────────────────────────────────────
 // После заполнения одного портала — открывает соседние.
 
-export function openMultiPortal(draft, current) {
+function openMultiPortal(draft, current) {
   const targets = ["kv.ee", "city24.ee", "soov.ee", "1a.ee"].filter(x => x !== current);
   chrome.storage.local.set({ aidi_pending_draft: draft });
   const urls = {
@@ -175,7 +175,7 @@ export function openMultiPortal(draft, current) {
 
 // ── Pre-publish AI review ────────────────────────────────────────────
 
-export async function preReview(draft) {
+async function preReview(draft) {
   const r = await fetch("https://api.aidi.ee/api/generate/pre-review", {
     method: "POST",
     headers: { "Content-Type": "application/json" },

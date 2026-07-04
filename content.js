@@ -156,6 +156,19 @@
 
   function fmt(n) { try { return Math.round(n).toLocaleString(lang === "ru" ? "ru" : "en") + " €"; } catch { return n + " €"; } }
 
+  async function findOnOtherPortals(listing) {
+    if (!listing?.address || listing.address.length < 6) return null;
+    try {
+      const params = new URLSearchParams({ address: listing.address });
+      if (listing.area_m2) params.set("area_m2", String(listing.area_m2));
+      if (listing.rooms) params.set("rooms", String(listing.rooms));
+      params.set("current_url", url);
+      const r = await fetch(`${API}/api/analyze/cross-portal?${params}`);
+      if (!r.ok) return null;
+      return await r.json();
+    } catch { return null; }
+  }
+
   function renderReport(r) {
     const verdict = t.verdicts[r.verdict] || r.verdict;
     const deltaTxt = (r.price_delta * 100).toFixed(0) + "%";
@@ -197,6 +210,32 @@
         if (code) analyze(code);
       });
     }
+
+    // Cross-portal — ищем ту же квартиру на других сайтах
+    findOnOtherPortals(r.listing).then(cp => {
+      if (!cp || !cp.matches || cp.matches.length === 0) return;
+      const cheapest = cp.savings ? cp.savings.min_price : null;
+      const savingLine = cp.savings && cp.savings.delta_eur > 500
+        ? `<div style="background:#e6f3f4;padding:6px 8px;border-radius:6px;font-size:12px;color:#0e4b51;margin-bottom:6px">
+             💡 Дешевле на ${Math.round(cp.savings.delta_eur).toLocaleString("ru")} € (${cp.savings.delta_pct.toFixed(0)}%)
+           </div>` : "";
+      const items = cp.matches.slice(0, 4).map(m => {
+        const price = m.asking_price ? Math.round(m.asking_price).toLocaleString("ru") + " €" : "";
+        const badge = cheapest && m.asking_price === cheapest ? " 🏷" : "";
+        return `<div style="padding:6px 0;border-top:1px solid #eef1f1;font-size:12px">
+          <a href="${escapeHtml(m.url)}" target="_blank" style="color:#007782;font-weight:600">
+            ${escapeHtml(m.source)}${badge}
+          </a>
+          <div style="color:#5a6566">${escapeHtml(m.title.slice(0,50))}</div>
+          <div style="color:#171c1c;font-weight:700">${price}</div>
+        </div>`;
+      }).join("");
+      const wrapper = document.createElement("div");
+      wrapper.className = "aidi-sec";
+      wrapper.style.borderLeft = "3px solid #007782";
+      wrapper.innerHTML = `<b>🔍 На других сайтах (${cp.matches.length})</b>${savingLine}${items}`;
+      body.appendChild(wrapper);
+    });
   }
 
   function escapeHtml(s) {

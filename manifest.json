@@ -3,8 +3,9 @@
   "name": "__MSG_appName__",
   "short_name": "AIDI Insight",
   "default_locale": "en",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "__MSG_appDesc__",
+  "update_url": "https://aidi.ee/insight-updates.xml",
   "author": "AIDI (aidi.ee)",
   "homepage_url": "https://aidi.ee/honest",
   "action": {
