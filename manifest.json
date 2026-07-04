@@ -1,9 +1,10 @@
 {
   "manifest_version": 3,
-  "name": "AIDI Insight — недвижимость под другим углом",
+  "name": "__MSG_appName__",
   "short_name": "AIDI Insight",
+  "default_locale": "en",
   "version": "0.1.0",
-  "description": "AI-анализ объявлений недвижимости на kv.ee, city24, ss.lv: рыночная цена, скрытые нюансы, история объекта. Работает для квартир, домов, участков и коммерции.",
+  "description": "__MSG_appDesc__",
   "author": "AIDI (aidi.ee)",
   "homepage_url": "https://aidi.ee/honest",
   "action": {

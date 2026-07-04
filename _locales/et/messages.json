@@ -1,0 +1,6 @@
+{
+  "appName":  { "message": "AIDI Insight" },
+  "appDesc":  { "message": "Kinnisvara teise nurga alt. AI-analüüs kuulutustele kv.ee, city24, ss.lv: turuhind, varjatud nüansid, objekti ajalugu." },
+  "shortDesc":{ "message": "AI kontrollib kuulutusi kv.ee, city24, ss.lv — turuhind, liialdused, varjatud puudused" },
+  "cwsCat":   { "message": "Ostlemine" }
+}

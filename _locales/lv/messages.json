@@ -1,0 +1,6 @@
+{
+  "appName":  { "message": "AIDI Insight" },
+  "appDesc":  { "message": "Nekustamais īpašums no cita skata leņķa. AI analīze sludinājumiem kv.ee, city24, ss.lv: tirgus cena, apslēptas nianses, objekta vēsture." },
+  "shortDesc":{ "message": "AI pārbauda sludinājumus kv.ee, city24, ss.lv — cena, pārspīlējumi, apslēpti defekti" },
+  "cwsCat":   { "message": "Iepirkšanās" }
+}

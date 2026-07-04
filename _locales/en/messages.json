@@ -1,0 +1,6 @@
+{
+  "appName":  { "message": "AIDI Insight" },
+  "appDesc":  { "message": "Real estate under a different angle. AI analysis of listings on kv.ee, city24, ss.lv: market price, hidden nuances, object history." },
+  "shortDesc":{ "message": "AI checks listings on kv.ee, city24, ss.lv — fair price, exaggerations, hidden defects" },
+  "cwsCat":   { "message": "Shopping" }
+}
