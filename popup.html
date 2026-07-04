@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>AIDI Insight</title>
+  <style>
+    body {
+      width: 340px;
+      margin: 0;
+      padding: 14px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 14px;
+      color: #171c1c;
+    }
+    h1 { margin: 0 0 2px; font-size: 15px; color: #0e4b51; }
+    p.sub { color: #5a6566; font-size: 12px; margin: 2px 0 12px; }
+    .tabs { display: flex; gap: 6px; margin-bottom: 10px; }
+    .tab {
+      flex: 1; padding: 6px 8px; background: #f6f9f9;
+      border-radius: 8px; text-align: center; font-size: 12px;
+      cursor: pointer; border: 1px solid transparent;
+    }
+    .tab.active { background: #e6f3f4; border-color: #0e4b51; font-weight: 700; color: #0e4b51; }
+    .sites { list-style: none; padding: 0; margin: 8px 0; font-size: 12px; }
+    .sites li { padding: 3px 0; color: #5a6566; }
+    .history-item {
+      padding: 8px 10px; border-radius: 8px; background: #f6f9f9;
+      margin-bottom: 6px; font-size: 12px; cursor: pointer;
+    }
+    .history-item:hover { background: #e6f3f4; }
+    .history-item .h-title { font-weight: 600; color: #171c1c; }
+    .history-item .h-verdict { display: inline-block; padding: 1px 6px; border-radius: 4px; font-size: 11px; margin-right: 4px; }
+    .history-item .h-url { color: #94a3a3; font-size: 11px; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .empty { color: #94a3a3; text-align: center; padding: 20px; font-size: 12px; }
+    .cta {
+      display: block; text-align: center; padding: 10px 12px;
+      background: #0e4b51; color: #fff; text-decoration: none;
+      border-radius: 8px; font-weight: 700; font-size: 13px; margin-top: 10px;
+    }
+    .foot { margin-top: 12px; font-size: 11px; color: #94a3a3; text-align: center; }
+    .foot a { color: #007782; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <h1>🤖 AIDI Insight</h1>
+  <p class="sub">AI-анализ на 6 порталах недвижимости EE + LV</p>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="history">История</div>
+    <div class="tab" data-tab="sites">Сайты</div>
+    <div class="tab" data-tab="settings">Настройки</div>
+  </div>
+
+  <div id="tab-history">
+    <div id="history-list"><div class="empty">Пока пусто. Открой любое объявление на kv.ee/city24/ss.lv</div></div>
+  </div>
+
+  <div id="tab-sites" style="display:none">
+    <ul class="sites">
+      <li>🇪🇪 kv.ee — квартиры/дома/участки</li>
+      <li>🇪🇪 city24.ee — эстонский агрегатор</li>
+      <li>🇪🇪 soov.ee — небольшой рынок</li>
+      <li>🇪🇪 1a.ee — коммерция</li>
+      <li>🇱🇻 city24.lv — латвийский агрегатор</li>
+      <li>🇱🇻 ss.lv — самая большая доска в Латвии</li>
+    </ul>
+  </div>
+
+  <div id="tab-settings" style="display:none">
+    <label style="display:block;margin-bottom:6px;font-size:12px;color:#5a6566">Код доступа (UNLOCK)</label>
+    <input id="unlock-input" placeholder="AIDI2026" style="width:100%;padding:8px 10px;border:1px solid #cfd6d6;border-radius:8px;font-size:13px;box-sizing:border-box" />
+    <button id="unlock-save" style="width:100%;margin-top:8px;padding:8px 12px;background:#0e4b51;color:#fff;border:0;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer">Сохранить</button>
+    <div id="settings-msg" style="font-size:11px;color:#0e4b51;margin-top:6px"></div>
+  </div>
+
+  <a class="cta" href="https://aidi.ee/honest" target="_blank">Открыть на aidi.ee →</a>
+
+  <div class="foot">
+    Powered by <a href="https://aidi.ee" target="_blank">aidi.ee</a>
+    · <a href="https://aidi.ee/privacy" target="_blank">Privacy</a>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

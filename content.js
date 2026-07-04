@@ -1,0 +1,269 @@
+/**
+ * AIDI Insight — content script.
+ * Runs on every kv.ee / city24 / ss.lv page.
+ * Detects if current page is a listing detail — injects overlay widget.
+ */
+
+(() => {
+  if (window.__aidiInsightInjected) return;
+  window.__aidiInsightInjected = true;
+
+  const API = "https://api.aidi.ee";
+
+  // ── Site profiles ─────────────────────────────────────────────────
+  // Каждый сайт: pattern детекции detail-страницы + branding overlay
+  // (accent-цвет из фирменной палитры сайта) + label + country.
+  const SITE_PROFILES = {
+    "kv.ee": {
+      match: /kv\.ee\/[a-z0-9\-]+-\d{6,}\.html/,
+      accent: "#6c3bd9",  // фиолетовый kv.ee
+      label: "kv.ee",
+      country: "EE",
+      icon: "🇪🇪",
+    },
+    "city24.ee": {
+      match: /city24\.ee\/real-estate\/[^\/]+\/[^\/]+\/\d+/,
+      accent: "#004b9f",  // синий city24
+      label: "city24.ee",
+      country: "EE",
+      icon: "🇪🇪",
+    },
+    "city24.lv": {
+      match: /city24\.lv\/real-estate\/[^\/]+\/[^\/]+\/\d+/,
+      accent: "#004b9f",
+      label: "city24.lv",
+      country: "LV",
+      icon: "🇱🇻",
+    },
+    "ss.lv": {
+      match: /ss\.(lv|com)\/msg\/[a-z]+\/[a-z0-9\-]+\/[a-z0-9\-]+\/[a-z0-9\-]+\/[a-z0-9\-]+\.html/,
+      accent: "#4a8f2f",  // зелёный ss.lv
+      label: "ss.lv",
+      country: "LV",
+      icon: "🇱🇻",
+    },
+    "soov.ee": {
+      match: /soov\.ee\/kuulutused\/\d+/,
+      accent: "#e37b32",
+      label: "soov.ee",
+      country: "EE",
+      icon: "🇪🇪",
+    },
+    "1a.ee": {
+      match: /1a\.ee\/kinnisvara\/\d+/,
+      accent: "#c62828",
+      label: "1a.ee",
+      country: "EE",
+      icon: "🇪🇪",
+    },
+  };
+
+  const url = location.href;
+  let source = null;
+  let profile = null;
+  for (const [key, prof] of Object.entries(SITE_PROFILES)) {
+    if (prof.match.test(url)) {
+      source = key;
+      profile = prof;
+      break;
+    }
+  }
+  if (!source) return;  // не detail-страница — не показываем ничего
+
+  // ── Language detection ────────────────────────────────────────────
+  function detectLang() {
+    const html = document.documentElement.lang || "";
+    if (html.startsWith("ru")) return "ru";
+    if (html.startsWith("et")) return "et";
+    if (html.startsWith("lv")) return "lv";
+    const nav = (navigator.language || "en").slice(0, 2).toLowerCase();
+    if (["ru", "et", "lv"].includes(nav)) return nav;
+    if (url.includes("/est/") || url.includes(".ee/")) return "et";
+    if (url.includes(".lv/")) return "lv";
+    if (url.includes("/rus/")) return "ru";
+    return "en";
+  }
+  const lang = detectLang();
+
+  const T = {
+    ru: {
+      brand: "AIDI Insight", checking: "Смотрим объект", secs: "с",
+      fair: "Оценка", ask: "Заявлено", delta: "Разница",
+      confirmed: "Подтверждено", warn: "Обратить внимание", hidden: "Замечено AI",
+      unlock: "Открыть полный отчёт", openWeb: "Открыть в aidi.ee",
+      unlockPh: "Код (опционально)",
+      verdicts: { good_deal: "🟢 Ниже средней", fair: "🟡 В рынке", overpriced: "🔴 Выше рынка", underpriced: "⚠️ Значительно ниже", cant_tell: "❔ Мало данных" },
+    },
+    et: {
+      brand: "AIDI Insight", checking: "Vaatame objekti", secs: "s",
+      fair: "Hinnang", ask: "Küsitakse", delta: "Erinevus",
+      confirmed: "Kinnitatud", warn: "Pane tähele", hidden: "AI märkas",
+      unlock: "Ava täisülevaade", openWeb: "Ava aidi.ee-s",
+      unlockPh: "Kood (valikuline)",
+      verdicts: { good_deal: "🟢 Alla turu", fair: "🟡 Turul", overpriced: "🔴 Üle turu", underpriced: "⚠️ Oluliselt madalam", cant_tell: "❔ Andmeid vähe" },
+    },
+    lv: {
+      brand: "AIDI Insight", checking: "Skatām objektu", secs: "s",
+      fair: "Vērtējums", ask: "Prasa", delta: "Atšķirība",
+      confirmed: "Apstiprināts", warn: "Pievērst uzmanību", hidden: "AI pamanīja",
+      unlock: "Atvērt pilnu pārskatu", openWeb: "Atvērt aidi.ee",
+      unlockPh: "Kods (izvēles)",
+      verdicts: { good_deal: "🟢 Zem tirgus", fair: "🟡 Tirgū", overpriced: "🔴 Virs tirgus", underpriced: "⚠️ Būtiski zemāk", cant_tell: "❔ Datu par maz" },
+    },
+    en: {
+      brand: "AIDI Insight", checking: "Analyzing", secs: "s",
+      fair: "Estimate", ask: "Asking", delta: "Delta",
+      confirmed: "Confirmed", warn: "Consider", hidden: "AI noticed",
+      unlock: "Open full report", openWeb: "Open on aidi.ee",
+      unlockPh: "Code (optional)",
+      verdicts: { good_deal: "🟢 Below market", fair: "🟡 On market", overpriced: "🔴 Above market", underpriced: "⚠️ Significantly lower", cant_tell: "❔ Not enough data" },
+    },
+  };
+  const t = T[lang] || T.en;
+
+  // ── Overlay UI (site-adaptive branding) ───────────────────────────
+  const el = document.createElement("div");
+  el.id = "aidi-insight-overlay";
+  el.setAttribute("data-source", source);
+  // Динамический accent-цвет header'а из profile
+  el.style.setProperty("--aidi-accent", profile.accent);
+  el.innerHTML = `
+    <div class="aidi-header" style="background: linear-gradient(135deg, ${profile.accent} 0%, ${shade(profile.accent, -18)} 100%);">
+      <span class="aidi-brand">🤖 ${t.brand}</span>
+      <span class="aidi-site" title="${profile.label}">${profile.icon} ${profile.label}</span>
+      <button class="aidi-close" title="Close">×</button>
+    </div>
+    <div class="aidi-body">
+      <div class="aidi-status">${t.checking}…</div>
+    </div>
+  `;
+  document.body.appendChild(el);
+
+  function shade(hex, percent) {
+    const num = parseInt(hex.slice(1), 16);
+    const r = Math.max(0, Math.min(255, (num >> 16) + Math.round(255 * percent / 100)));
+    const g = Math.max(0, Math.min(255, ((num >> 8) & 0xff) + Math.round(255 * percent / 100)));
+    const b = Math.max(0, Math.min(255, (num & 0xff) + Math.round(255 * percent / 100)));
+    return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, "0")}`;
+  }
+  el.querySelector(".aidi-close").addEventListener("click", () => el.remove());
+
+  const body = el.querySelector(".aidi-body");
+
+  function renderStatus(text) {
+    body.innerHTML = `<div class="aidi-status">${text}</div>`;
+  }
+
+  function fmt(n) { try { return Math.round(n).toLocaleString(lang === "ru" ? "ru" : "en") + " €"; } catch { return n + " €"; } }
+
+  function renderReport(r) {
+    const verdict = t.verdicts[r.verdict] || r.verdict;
+    const deltaTxt = (r.price_delta * 100).toFixed(0) + "%";
+    const deltaCol = r.price_delta > 0.1 ? "#b04a3a" : r.price_delta < -0.1 ? "#0e4b51" : "#5a6566";
+
+    let sections = "";
+    if (r.confirmed?.length) {
+      sections += `<div class="aidi-sec"><b>✅ ${t.confirmed}</b><ul>${r.confirmed.slice(0, 3).map(x => `<li>${escapeHtml(x)}</li>`).join("")}</ul></div>`;
+    }
+    if (r.exaggerated?.length) {
+      sections += `<div class="aidi-sec aidi-warn"><b>⚠️ ${t.warn}</b><ul>${r.exaggerated.slice(0, 3).map(x => `<li>${escapeHtml(x)}</li>`).join("")}</ul></div>`;
+    }
+    if (r.hidden?.length) {
+      sections += `<div class="aidi-sec aidi-hidden"><b>🕵 ${t.hidden}</b><ul>${r.hidden.slice(0, 3).map(x => `<li>${escapeHtml(x)}</li>`).join("")}</ul></div>`;
+    }
+    if (r.forensics?.reconstructed_facade_warning) {
+      sections += `<div class="aidi-sec aidi-facade">⚠️ ${r.forensics.notes?.[0] || "Fassaad kaetud"}</div>`;
+    }
+
+    body.innerHTML = `
+      <div class="aidi-verdict">${verdict}</div>
+      <div class="aidi-prices">
+        <div><span>${t.fair}</span><b>${fmt(r.fair_price_median)}</b></div>
+        ${r.listing?.asking_price ? `<div><span>${t.ask}</span><b>${fmt(r.listing.asking_price)}</b></div>` : ""}
+        <div><span>${t.delta}</span><b style="color:${deltaCol}">${deltaTxt}</b></div>
+      </div>
+      ${sections}
+      ${r.tier === "basic" ? `
+        <div class="aidi-unlock">
+          <input id="aidi-unlock-input" placeholder="${t.unlockPh}" />
+          <button id="aidi-unlock-btn">🔓 ${t.unlock}</button>
+        </div>` : ""}
+      <a class="aidi-open" href="https://aidi.ee/honest?url=${encodeURIComponent(url)}" target="_blank">${t.openWeb} →</a>
+    `;
+
+    if (r.tier === "basic") {
+      el.querySelector("#aidi-unlock-btn").addEventListener("click", () => {
+        const code = el.querySelector("#aidi-unlock-input").value.trim();
+        if (code) analyze(code);
+      });
+    }
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+    }[c]));
+  }
+
+  // ── API flow ──────────────────────────────────────────────────────
+  async function analyze(unlockCode) {
+    renderStatus(`${t.checking}…`);
+    try {
+      const start = await fetch(`${API}/api/analyze/listing`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url, unlock_code: unlockCode || undefined, lang }),
+      }).then(r => r.json());
+      if (!start.task_id) throw new Error("no task");
+      const t0 = Date.now();
+      while (Date.now() - t0 < 240_000) {
+        await new Promise(r => setTimeout(r, 3000));
+        const secs = Math.round((Date.now() - t0) / 1000);
+        renderStatus(`${t.checking}… ${secs}${t.secs}`);
+        const r = await fetch(`${API}/api/analyze/status/${start.task_id}`).then(r => r.json());
+        if (r.status === "done") return renderReport(r);
+        if (r.status === "error") return renderStatus("⚠ " + (r.error || "error"));
+      }
+      renderStatus("⌛ timeout");
+    } catch (e) {
+      renderStatus("⚠ " + (e.message || "network"));
+    }
+  }
+
+  // ── Badge sync ────────────────────────────────────────────────────
+  function notifyBg(type, extra = {}) {
+    try { chrome.runtime.sendMessage({ type, ...extra }); } catch {}
+  }
+
+  // Патчим renderReport/renderStatus чтобы обновлять badge
+  const _renderReport = renderReport;
+  renderReport = (r) => { _renderReport(r); notifyBg("verdict", { verdict: r.verdict }); };
+  const _renderStatus = renderStatus;
+  renderStatus = (text) => { _renderStatus(text); if (text.includes("timeout")) notifyBg("clear"); };
+
+  notifyBg("loading");
+
+  // Save history in chrome.storage
+  const _renderReport2 = renderReport;
+  renderReport = (r) => {
+    _renderReport2(r);
+    try {
+      chrome.storage.local.get(["aidi_history"], (data) => {
+        const hist = data.aidi_history || [];
+        const entry = { url, source, verdict: r.verdict, title: r.listing?.title,
+                        ts: Date.now() };
+        const filtered = hist.filter(h => h.url !== url).slice(0, 19);
+        chrome.storage.local.set({ aidi_history: [entry, ...filtered] });
+      });
+    } catch {}
+  };
+
+  // Autoload unlock code from storage + auto-run
+  try {
+    chrome.storage.local.get(["aidi_unlock_code"], (data) => {
+      setTimeout(() => analyze(data.aidi_unlock_code), 800);
+    });
+  } catch {
+    setTimeout(() => analyze(), 800);
+  }
+})();

@@ -1,0 +1,177 @@
+#aidi-insight-overlay {
+  position: fixed;
+  right: 20px;
+  top: 100px;
+  width: 340px;
+  max-height: 80vh;
+  overflow-y: auto;
+  background: #ffffff;
+  border: 1px solid #e4eaea;
+  border-radius: 14px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  z-index: 2147483000;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 14px;
+  color: #171c1c;
+  animation: aidi-slide-in 0.3s ease-out;
+}
+
+@keyframes aidi-slide-in {
+  from { transform: translateX(20px); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+
+#aidi-insight-overlay .aidi-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 14px;
+  border-bottom: 1px solid #eef1f1;
+  background: linear-gradient(135deg, #0e4b51 0%, #007782 100%);
+  color: #ffffff;
+  border-radius: 14px 14px 0 0;
+}
+
+#aidi-insight-overlay .aidi-brand {
+  font-weight: 700;
+  font-size: 14px;
+}
+
+#aidi-insight-overlay .aidi-site {
+  font-size: 11px;
+  opacity: 0.85;
+  padding: 2px 8px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  margin-left: 8px;
+}
+
+#aidi-insight-overlay .aidi-close {
+  background: transparent;
+  border: 0;
+  color: #ffffff;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+  opacity: 0.8;
+}
+#aidi-insight-overlay .aidi-close:hover { opacity: 1; }
+
+#aidi-insight-overlay .aidi-body {
+  padding: 14px;
+}
+
+#aidi-insight-overlay .aidi-status {
+  color: #5a6566;
+  padding: 8px 4px;
+  text-align: center;
+  font-size: 13px;
+}
+
+#aidi-insight-overlay .aidi-verdict {
+  font-weight: 800;
+  font-size: 16px;
+  color: #0e4b51;
+  margin-bottom: 10px;
+  padding: 8px 10px;
+  background: #edf2f2;
+  border-radius: 8px;
+  text-align: center;
+}
+
+#aidi-insight-overlay .aidi-prices {
+  display: flex;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid #eef1f1;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+#aidi-insight-overlay .aidi-prices > div {
+  flex: 1;
+  min-width: 90px;
+}
+#aidi-insight-overlay .aidi-prices span {
+  display: block;
+  font-size: 11px;
+  color: #94a3a3;
+  margin-bottom: 2px;
+}
+#aidi-insight-overlay .aidi-prices b {
+  font-size: 15px;
+  color: #0e4b51;
+}
+
+#aidi-insight-overlay .aidi-sec {
+  margin-bottom: 10px;
+  padding: 8px 10px;
+  background: #f6f9f9;
+  border-radius: 8px;
+}
+#aidi-insight-overlay .aidi-sec b {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 13px;
+}
+#aidi-insight-overlay .aidi-sec ul {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 13px;
+  color: #5a6566;
+}
+#aidi-insight-overlay .aidi-sec.aidi-warn {
+  background: #fdf4ec;
+  border-left: 3px solid #7a4b0c;
+}
+#aidi-insight-overlay .aidi-sec.aidi-warn b { color: #7a4b0c; }
+#aidi-insight-overlay .aidi-sec.aidi-hidden {
+  background: #fbe9e5;
+  border-left: 3px solid #b04a3a;
+}
+#aidi-insight-overlay .aidi-sec.aidi-hidden b { color: #b04a3a; }
+#aidi-insight-overlay .aidi-sec.aidi-facade {
+  background: #fdf4ec;
+  color: #7a4b0c;
+  font-size: 13px;
+  padding: 10px;
+}
+
+#aidi-insight-overlay .aidi-unlock {
+  margin-top: 12px;
+  padding: 10px;
+  background: #e6f3f4;
+  border: 1px dashed #0e4b51;
+  border-radius: 8px;
+}
+#aidi-insight-overlay .aidi-unlock input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #cfd6d6;
+  border-radius: 8px;
+  font-size: 13px;
+  margin-bottom: 8px;
+  box-sizing: border-box;
+}
+#aidi-insight-overlay .aidi-unlock button {
+  width: 100%;
+  padding: 8px 12px;
+  background: #0e4b51;
+  color: #ffffff;
+  border: 0;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+}
+#aidi-insight-overlay .aidi-unlock button:hover { background: #007782; }
+
+#aidi-insight-overlay .aidi-open {
+  display: block;
+  text-align: center;
+  margin-top: 10px;
+  font-size: 12px;
+  color: #007782;
+  text-decoration: none;
+}
+#aidi-insight-overlay .aidi-open:hover { text-decoration: underline; }

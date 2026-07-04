@@ -1,0 +1,53 @@
+{
+  "manifest_version": 3,
+  "name": "AIDI Insight — недвижимость под другим углом",
+  "short_name": "AIDI Insight",
+  "version": "0.1.0",
+  "description": "AI-анализ объявлений недвижимости на kv.ee, city24, ss.lv: рыночная цена, скрытые нюансы, история объекта. Работает для квартир, домов, участков и коммерции.",
+  "author": "AIDI (aidi.ee)",
+  "homepage_url": "https://aidi.ee/honest",
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/16.png",
+      "32": "icons/32.png",
+      "48": "icons/48.png",
+      "128": "icons/128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/16.png",
+    "32": "icons/32.png",
+    "48": "icons/48.png",
+    "128": "icons/128.png"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.kv.ee/*",
+        "https://kv.ee/*",
+        "https://www.city24.ee/*",
+        "https://city24.ee/*",
+        "https://www.city24.lv/*",
+        "https://city24.lv/*",
+        "https://www.ss.lv/*",
+        "https://ss.lv/*",
+        "https://ss.com/*",
+        "https://www.soov.ee/*",
+        "https://soov.ee/*",
+        "https://www.1a.ee/*",
+        "https://1a.ee/*"
+      ],
+      "js": ["seller.js", "content.js"],
+      "css": ["overlay.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "permissions": ["storage", "activeTab"],
+  "host_permissions": [
+    "https://api.aidi.ee/*"
+  ]
+}
