@@ -171,10 +171,27 @@
 
   function renderReport(r) {
     const verdict = t.verdicts[r.verdict] || r.verdict;
+    const hasAsking = !!r.listing?.asking_price;
+    const showDelta = hasAsking && Math.abs(r.price_delta) > 0.001;
     const deltaTxt = (r.price_delta * 100).toFixed(0) + "%";
     const deltaCol = r.price_delta > 0.1 ? "#b04a3a" : r.price_delta < -0.1 ? "#0e4b51" : "#5a6566";
 
     let sections = "";
+
+    // "Detected" — что backend распарсил (показываем ВСЕГДА когда есть данные,
+    // особенно важно для cant_tell / пустых verdict'ов).
+    const l = r.listing || {};
+    const detected = [];
+    if (l.address)    detected.push(`📍 ${escapeHtml(l.address)}`);
+    if (l.area_m2)    detected.push(`📐 ${l.area_m2} m²`);
+    if (l.rooms)      detected.push(`🚪 ${l.rooms} tuba`);
+    if (l.build_year) detected.push(`🏗 ${l.build_year}`);
+    if (detected.length) {
+      sections += `<div class="aidi-sec" style="border-left:3px solid #007782;background:#f5fafa">
+        <div style="font-size:12px;color:#171c1c">${detected.join(" · ")}</div>
+      </div>`;
+    }
+
     if (r.confirmed?.length) {
       sections += `<div class="aidi-sec"><b>✅ ${t.confirmed}</b><ul>${r.confirmed.slice(0, 3).map(x => `<li>${escapeHtml(x)}</li>`).join("")}</ul></div>`;
     }
@@ -187,14 +204,21 @@
     if (r.forensics?.reconstructed_facade_warning) {
       sections += `<div class="aidi-sec aidi-facade">⚠️ ${r.forensics.notes?.[0] || "Fassaad kaetud"}</div>`;
     }
+    // Warnings от backend — почему verdict "cant_tell" и т.д.
+    if (r.warnings?.length) {
+      sections += `<div class="aidi-sec aidi-warn" style="font-size:11px;opacity:0.85"><ul style="margin:0;padding-left:16px">${r.warnings.slice(0, 3).map(w => `<li>${escapeHtml(w)}</li>`).join("")}</ul></div>`;
+    }
 
+    const hasFair = r.fair_price_median && r.fair_price_median > 0;
+    const pricesHtml = (hasFair || hasAsking)
+      ? `<div class="aidi-prices">
+          ${hasFair ? `<div><span>${t.fair}</span><b>${fmt(r.fair_price_median)}</b></div>` : ""}
+          ${hasAsking ? `<div><span>${t.ask}</span><b>${fmt(r.listing.asking_price)}</b></div>` : ""}
+          ${showDelta ? `<div><span>${t.delta}</span><b style="color:${deltaCol}">${deltaTxt}</b></div>` : ""}
+        </div>` : "";
     body.innerHTML = `
       <div class="aidi-verdict">${verdict}</div>
-      <div class="aidi-prices">
-        <div><span>${t.fair}</span><b>${fmt(r.fair_price_median)}</b></div>
-        ${r.listing?.asking_price ? `<div><span>${t.ask}</span><b>${fmt(r.listing.asking_price)}</b></div>` : ""}
-        <div><span>${t.delta}</span><b style="color:${deltaCol}">${deltaTxt}</b></div>
-      </div>
+      ${pricesHtml}
       ${sections}
       ${r.tier === "basic" ? `
         <div class="aidi-unlock">
@@ -203,6 +227,24 @@
         </div>` : ""}
       <a class="aidi-open" href="https://aidi.ee/honest?url=${encodeURIComponent(url)}" target="_blank">${t.openWeb} →</a>
     `;
+
+    // Backend распарсил более точный адрес — дозапросим enrich, если своим regex промахнулись
+    if (l.address && l.address.length > 5) {
+      loadEnrich(l.address);
+    }
+
+    // Сохраняем контекст последнего анализа — чтобы popup и переход
+    // на aidi.ee/honest могли использовать даже после закрытия вкладки.
+    try {
+      chrome.storage.local.set({
+        aidi_last_source: {
+          url, source, verdict: r.verdict,
+          address: l.address, area_m2: l.area_m2, rooms: l.rooms,
+          asking_price: l.asking_price, fair_price: r.fair_price_median,
+          ts: Date.now(),
+        }
+      });
+    } catch {}
 
     if (r.tier === "basic") {
       el.querySelector("#aidi-unlock-btn").addEventListener("click", () => {
@@ -344,9 +386,12 @@
     } catch { return null; }
   }
 
-  async function loadEnrich() {
-    const addr = extractAddress();
+  let _enrichLoaded = false;  // предотвращаем дубли, если позвали 2 раза (через extractAddress и через backend.address)
+  async function loadEnrich(overrideAddr) {
+    if (_enrichLoaded) return;
+    const addr = overrideAddr || extractAddress();
     if (!addr) return;
+    _enrichLoaded = true;
     let d = null;
     try {
       // Backend enrich может занять до 15 сек (Overpass медленный при cold cache)
