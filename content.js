@@ -267,7 +267,14 @@
       }
       renderStatus("⌛ timeout");
     } catch (e) {
-      renderStatus("⚠ " + (e.message || "network"));
+      const msg = e.message || "network";
+      const isNetErr = /fetch|network|failed/i.test(msg);
+      renderStatus(isNetErr
+        ? "⚠ Сервис временно недоступен — авто-повтор через 30с"
+        : "⚠ " + msg);
+      if (isNetErr) {
+        setTimeout(() => analyze(unlockCode), 30000);
+      }
     }
   }
 
@@ -283,6 +290,65 @@
   renderStatus = (text) => { _renderStatus(text); if (text.includes("timeout")) notifyBg("clear"); };
 
   notifyBg("loading");
+
+  // ── Enrichment: показывает ВСЕ данные об объекте (EHR, POI, соседи)
+  // мгновенно, без ожидания LLM.
+  function extractAddress() {
+    const t = document.title || "";
+    const h = document.querySelector("h1")?.innerText || "";
+    for (const c of [t, h].filter(Boolean)) {
+      const m = c.match(/([A-ZÕÄÖÜŠŽа-я][A-Za-zÕÄÖÜŠŽõäöüšžа-я\s\-\.]+\s\d+[a-z]?(?:[\/\-]\d+)?[^,]*,\s*[^,]+,\s*[^,\|]+)/i);
+      if (m) return m[1].trim().slice(0, 200);
+    }
+    return "";
+  }
+
+  async function loadEnrich() {
+    const addr = extractAddress();
+    if (!addr) return;
+    try {
+      const r = await fetch(`${API}/api/analyze/enrich?address=${encodeURIComponent(addr)}`);
+      if (!r.ok) return;
+      const d = await r.json();
+      const items = [];
+      if (d.ehr) {
+        items.push(`🏗 <b>По EHR:</b> год ${d.ehr.build_year || '?'}${d.ehr.construction ? ', ' + d.ehr.construction : ''}`);
+      }
+      if (d.era === "panel_hruschovka_era") {
+        items.push(`⚠️ Эпоха панельной застройки — уточнить состояние коммуникаций`);
+      } else if (d.era === "pre_war") {
+        items.push(`🕰 Довоенное здание — часто деревянные перекрытия`);
+      } else if (d.era === "new_conc") {
+        items.push(`🆕 Новое здание (после 2015)`);
+      }
+      if (d.geocoded?.district) {
+        items.push(`📍 ${d.geocoded.district}${d.geocoded.city ? ', ' + d.geocoded.city : ''}`);
+      }
+      if (d.nearby && d.nearby.length) {
+        const top = d.nearby.slice(0, 4).map(p => `${escapeHtml(p.name)} ${p.dist_m}м`);
+        items.push(`🚏 Рядом: ${top.join(' · ')}`);
+      }
+      if (d.neighborhood && d.neighborhood.length) {
+        const years = d.neighborhood.filter(b => b.build_year).map(b => b.build_year);
+        if (years.length) {
+          const avg = Math.round(years.reduce((a, b) => a + b, 0) / years.length);
+          items.push(`🏘 Соседних зданий: ${years.length}, средний год: ${avg}`);
+        }
+      }
+      (d.warnings || []).forEach(w => items.push(`⚠️ ${escapeHtml(w)}`));
+      (d.notes || []).forEach(n => items.push(`💡 ${escapeHtml(n)}`));
+
+      if (items.length) {
+        const div = document.createElement("div");
+        div.className = "aidi-sec";
+        div.style.borderLeft = "3px solid #6c3bd9";
+        div.innerHTML = `<b>🔎 Что мы знаем об объекте</b>${items.map(x => `<div style="margin-top:6px;font-size:12px;color:#171c1c">${x}</div>`).join('')}`;
+        body.insertBefore(div, body.firstChild);
+      }
+    } catch {}
+  }
+
+  loadEnrich();
 
   // Save history in chrome.storage
   const _renderReport2 = renderReport;
