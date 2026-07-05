@@ -245,35 +245,42 @@
   }
 
   // ── API flow ──────────────────────────────────────────────────────
+  let _retryCount = 0;
   async function analyze(unlockCode) {
     renderStatus(`${t.checking}…`);
     try {
-      // Extension отдаёт HTML страницы — backend не может fetch kv.ee (Datadome).
       const html_snapshot = document.documentElement.outerHTML.slice(0, 500_000);
-      const start = await fetch(`${API}/api/analyze/listing`, {
+      const resp = await fetch(`${API}/api/analyze/listing`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url, unlock_code: unlockCode || undefined, lang, html_snapshot }),
-      }).then(r => r.json());
-      if (!start.task_id) throw new Error("no task");
+      });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const start = await resp.json();
+      if (!start.task_id) throw new Error("no task_id in response");
+      _retryCount = 0;
       const t0 = Date.now();
       while (Date.now() - t0 < 240_000) {
         await new Promise(r => setTimeout(r, 3000));
         const secs = Math.round((Date.now() - t0) / 1000);
         renderStatus(`${t.checking}… ${secs}${t.secs}`);
-        const r = await fetch(`${API}/api/analyze/status/${start.task_id}`).then(r => r.json());
+        const statusResp = await fetch(`${API}/api/analyze/status/${start.task_id}`);
+        if (!statusResp.ok) continue;
+        const r = await statusResp.json();
         if (r.status === "done") return renderReport(r);
         if (r.status === "error") return renderStatus("⚠ " + (r.error || "error"));
       }
       renderStatus("⌛ timeout");
     } catch (e) {
       const msg = e.message || "network";
-      const isNetErr = /fetch|network|failed/i.test(msg);
+      const isNetErr = /fetch|network|failed|HTTP 5/i.test(msg);
+      const delay = Math.min(30, 5 + _retryCount * 5);
       renderStatus(isNetErr
-        ? "⚠ Сервис временно недоступен — авто-повтор через 30с"
+        ? `⚠ ${msg} — retry in ${delay}s (${_retryCount + 1})`
         : "⚠ " + msg);
-      if (isNetErr) {
-        setTimeout(() => analyze(unlockCode), 30000);
+      if (isNetErr && _retryCount < 10) {
+        _retryCount++;
+        setTimeout(() => analyze(unlockCode), delay * 1000);
       }
     }
   }
