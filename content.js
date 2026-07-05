@@ -151,10 +151,100 @@
   const body = el.querySelector(".aidi-body");
 
   function renderStatus(text) {
-    body.innerHTML = `<div class="aidi-status">${text}</div>`;
+    body.innerHTML = `<div class="aidi-status">${text}</div>` + _detectedHtml();
   }
 
   function fmt(n) { try { return Math.round(n).toLocaleString(lang === "ru" ? "ru" : "en") + " €"; } catch { return n + " €"; } }
+
+  // ── Instant DOM extraction ────────────────────────────────────────
+  // Читаем что видим на странице ПРЯМО СЕЙЧАС (до ожидания LLM) —
+  // юзер сразу получает feedback: сайт такой-то, цена такая-то.
+  function extractLocalListing() {
+    const out = { source: profile.label };
+    const parseNum = (s) => parseFloat(String(s || "").replace(/[\s\u00a0]/g, "").replace(",", "."));
+
+    // Price — site-specific DOM селекторы (regex ловит суммы подарков и др.)
+    let priceEl = null;
+    if (source === "kv.ee") {
+      priceEl = Array.from(document.querySelectorAll(".price"))
+        .find(e => !e.className.includes("calc") && /\d/.test(e.innerText || ""));
+    } else if (source === "city24.ee" || source === "city24.lv") {
+      priceEl = document.querySelector('[data-testid*="price"], .object-price, [class^="price"]');
+    } else if (source === "ss.lv") {
+      priceEl = document.querySelector('.ads_price, .msg_price');
+    } else if (source === "soov.ee" || source === "1a.ee") {
+      priceEl = document.querySelector('.price, .item-price');
+    }
+    if (priceEl) {
+      const m = priceEl.innerText.match(/(\d[\d\s\u00a0]*)/);
+      if (m) { const v = parseNum(m[1]); if (v >= 1000) out.asking_price = v; }
+    }
+    // Fallback — JSON-LD / og:price
+    if (!out.asking_price) {
+      const html = document.body.innerHTML || "";
+      const m = html.match(/"price"\s*:\s*"?(\d{4,7})/) ||
+                html.match(/og:price:amount"\s*content="(\d{4,7})/);
+      if (m) { const v = parseNum(m[1]); if (v >= 1000) out.asking_price = v; }
+    }
+
+    // Area/rooms — из h1/title (специфичный контекст)
+    const h1Txt = document.querySelector("h1")?.innerText || "";
+    const titleTxt = document.title || "";
+    const focusTxt = h1Txt + "\n" + titleTxt;
+    let areaMatch = focusTxt.match(/(\d{2,4}(?:[.,]\d)?)\s*m[\u00b22]/i);
+    if (!areaMatch) {
+      areaMatch = (document.body.innerText || "").match(/(?:Pindala|\u00dcldpindala|Площадь|Plat\u012bba)[^0-9]{0,10}(\d{1,4}(?:[.,]\d)?)/i);
+    }
+    if (areaMatch) {
+      const v = parseNum(areaMatch[1]);
+      if (v >= 5 && v <= 5000) out.area_m2 = v;
+    }
+
+    const roomsMatch = focusTxt.match(/(\d+)\s*(?:tuba|toaline|magamistuba|комн|istab)/i);
+    if (roomsMatch) out.rooms = parseInt(roomsMatch[1]);
+
+    for (const c of [h1Txt, titleTxt].filter(Boolean)) {
+      const m = c.match(/([A-Z\u00d5\u00c4\u00d6\u00dc\u0160\u017da-я][A-Za-z\u00d5\u00c4\u00d6\u00dc\u0160\u017d\u00f5\u00e4\u00f6\u00fc\u0161\u017ea-я\s\-\.]+(?:\s\d+[a-z]?(?:[\/\-]\d+)?)?[^,|]*(?:,\s*[^,|]+){1,4})/i);
+      if (m) { out.address = m[1].trim().slice(0, 200); break; }
+    }
+
+    const yearMatch = (document.body.innerText || "").match(/(?:Ehitusaasta|Год постройки|Build year|B\u016bv\u0113ts)[^0-9]{0,10}(\d{4})/i);
+    if (yearMatch) out.build_year = parseInt(yearMatch[1]);
+    return out;
+  }
+
+  let _localData = extractLocalListing();
+  // Retry через 1-2-3с: SPA'ы (city24, современный kv) могут ленитво
+  // подгружать .price/.area после document_idle.
+  for (const delay of [500, 1500, 3000]) {
+    setTimeout(() => {
+      if (_localData.asking_price && _localData.area_m2) return;
+      const fresh = extractLocalListing();
+      if (fresh.asking_price || fresh.area_m2 || fresh.rooms) {
+        _localData = { ..._localData, ...fresh };
+        // Перерисуем текущий status/report блок с обновлённой detected-секцией
+        const detectedEl = body.querySelector(".aidi-sec[data-detected]");
+        if (detectedEl) detectedEl.outerHTML = _detectedHtml();
+        else if (body.querySelector(".aidi-status")) renderStatus(body.querySelector(".aidi-status").innerText.replace(/…$/, "…"));
+      }
+    }, delay);
+  }
+
+  function _detectedHtml() {
+    const parts = [];
+    parts.push(`🌐 ${profile.label}`);
+    if (_localData.asking_price) parts.push(`💰 ${Math.round(_localData.asking_price).toLocaleString(lang === "ru" ? "ru" : "en")} €`);
+    if (_localData.area_m2)      parts.push(`📐 ${_localData.area_m2} m²`);
+    if (_localData.rooms)        parts.push(`🚪 ${_localData.rooms}`);
+    if (_localData.build_year)   parts.push(`🏗 ${_localData.build_year}`);
+    let html = `<div class="aidi-sec" data-detected="1" style="border-left:3px solid ${profile.accent};background:#f5fafa;margin-top:8px">
+      <div style="font-size:12px;color:#171c1c">${parts.join(" · ")}</div>`;
+    if (_localData.address) {
+      html += `<div style="font-size:11px;color:#5a6566;margin-top:3px">📍 ${escapeHtml(_localData.address)}</div>`;
+    }
+    html += `</div>`;
+    return html;
+  }
 
   async function findOnOtherPortals(listing) {
     if (!listing?.address || listing.address.length < 6) return null;
