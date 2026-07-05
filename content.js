@@ -56,6 +56,14 @@
       country: "EE",
       icon: "🇪🇪",
     },
+    "kinnisvara24.ee": {
+      // URL: /korter-muuk-tallinn/240874706 или /maja-muuk-*/id или /kinnistu-*/id
+      match: /kinnisvara24\.ee\/[a-z\-]+\/\d{5,}/,
+      accent: "#2a7c9e",  // фирменный синий kinnisvara24
+      label: "kinnisvara24.ee",
+      country: "EE",
+      icon: "🇪🇪",
+    },
   };
 
   const url = location.href;
