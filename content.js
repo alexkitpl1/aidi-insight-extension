@@ -303,13 +303,54 @@
     return "";
   }
 
+  // Fallback: если наш backend не доступен — идём напрямую в Nominatim+Overpass
+  async function fallbackEnrich(address) {
+    try {
+      const r = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&addressdetails=1&limit=1&accept-language=ru,et,lv,en`);
+      const arr = await r.json();
+      if (!arr || !arr[0]) return null;
+      const g = arr[0];
+      const lat = parseFloat(g.lat), lon = parseFloat(g.lon);
+      const a = g.address || {};
+      const q = `[out:json][timeout:8];(node["amenity"~"school|kindergarten|pharmacy|supermarket|cafe|restaurant"](around:600,${lat},${lon});node["shop"~"supermarket|convenience|mall"](around:600,${lat},${lon});node["leisure"~"park|playground"](around:600,${lat},${lon});node["highway"="bus_stop"](around:400,${lat},${lon}););out body 20;`;
+      const r2 = await fetch("https://overpass-api.de/api/interpreter", {
+        method: "POST", body: "data=" + encodeURIComponent(q),
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      });
+      const data = await r2.json();
+      const pois = (data.elements || []).map(e => {
+        const t = e.tags || {};
+        const name = t.name || t["name:ru"] || t["name:et"] || t["name:lv"];
+        if (!name) return null;
+        const kind = t.amenity || t.shop || t.leisure || t.public_transport || t.highway;
+        const dlat = (e.lat - lat) * Math.PI / 180;
+        const dlon = (e.lon - lon) * Math.PI / 180;
+        const s = Math.sin(dlat/2)**2 + Math.cos(lat*Math.PI/180) * Math.cos(e.lat*Math.PI/180) * Math.sin(dlon/2)**2;
+        const dist = Math.round(2 * 6371000 * Math.asin(Math.sqrt(s)));
+        return { name, kind, dist_m: dist };
+      }).filter(Boolean).sort((a, b) => a.dist_m - b.dist_m).slice(0, 10);
+      return {
+        geocoded: { lat, lon, city: a.city || a.town || a.village || "",
+                   district: a.suburb || a.neighbourhood || a.city_district || "" },
+        nearby: pois, ehr: null, era: null, warnings: [], notes: [],
+      };
+    } catch { return null; }
+  }
+
   async function loadEnrich() {
     const addr = extractAddress();
     if (!addr) return;
+    let d = null;
     try {
       const r = await fetch(`${API}/api/analyze/enrich?address=${encodeURIComponent(addr)}`);
-      if (!r.ok) return;
-      const d = await r.json();
+      if (r.ok) d = await r.json();
+    } catch {}
+    if (!d) {
+      // Backend лежит — degraded fallback через прямые OSM
+      d = await fallbackEnrich(addr);
+    }
+    if (!d) return;
+    (function useEnrich(d) {
       const items = [];
       if (d.ehr) {
         items.push(`🏗 <b>По EHR:</b> год ${d.ehr.build_year || '?'}${d.ehr.construction ? ', ' + d.ehr.construction : ''}`);
@@ -345,7 +386,7 @@
         div.innerHTML = `<b>🔎 Что мы знаем об объекте</b>${items.map(x => `<div style="margin-top:6px;font-size:12px;color:#171c1c">${x}</div>`).join('')}`;
         body.insertBefore(div, body.firstChild);
       }
-    } catch {}
+    })(d);
   }
 
   loadEnrich();
