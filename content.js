@@ -342,11 +342,16 @@
     if (!addr) return;
     let d = null;
     try {
-      const r = await fetch(`${API}/api/analyze/enrich?address=${encodeURIComponent(addr)}`);
+      // Backend enrich может занять до 15 сек (Overpass медленный при cold cache)
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 20000);
+      const r = await fetch(`${API}/api/analyze/enrich?address=${encodeURIComponent(addr)}`,
+                            { signal: ctrl.signal });
+      clearTimeout(timer);
       if (r.ok) d = await r.json();
     } catch {}
     if (!d) {
-      // Backend лежит — degraded fallback через прямые OSM
+      // Backend лежит или таймаут — degraded fallback через прямые OSM
       d = await fallbackEnrich(addr);
     }
     if (!d) return;
