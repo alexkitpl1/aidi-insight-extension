@@ -43,21 +43,48 @@
 </head>
 <body>
   <h1>🤖 AIDI Insight</h1>
-  <p class="sub">AI-анализ на 6 порталах недвижимости EE + LV</p>
+  <p class="sub">AI-анализ на 7 порталах недвижимости EE + LV</p>
 
   <div class="tabs">
     <div class="tab active" data-tab="history">История</div>
+    <div class="tab" data-tab="brokers">Топ маклеров</div>
     <div class="tab" data-tab="sites">Сайты</div>
-    <div class="tab" data-tab="settings">Настройки</div>
+    <div class="tab" data-tab="settings">⚙</div>
   </div>
 
   <div id="tab-history">
+    <div style="display:flex;gap:6px;margin-bottom:8px;font-size:11px">
+      <select id="filter-verdict" style="flex:1;padding:4px 6px;border:1px solid #cfd6d6;border-radius:6px">
+        <option value="">Все verdicts</option>
+        <option value="good_deal">🟢 Ниже рынка</option>
+        <option value="fair">🟡 В рынке</option>
+        <option value="overpriced">🔴 Выше рынка</option>
+        <option value="underpriced">⚠️ Знач. ниже</option>
+        <option value="cant_tell">❔ Мало данных</option>
+      </select>
+      <select id="sort-by" style="flex:1;padding:4px 6px;border:1px solid #cfd6d6;border-radius:6px">
+        <option value="ts_desc">Свежие</option>
+        <option value="ts_asc">Старые</option>
+        <option value="title_asc">По названию</option>
+      </select>
+    </div>
     <div id="history-list"><div class="empty">Пока пусто. Открой любое объявление на kv.ee/city24/ss.lv</div></div>
+    <button id="export-favorites" style="width:100%;margin-top:6px;padding:6px;background:#f6f9f9;border:1px solid #cfd6d6;border-radius:6px;font-size:11px;cursor:pointer;color:#0e4b51">📋 Скопировать URLs в буфер</button>
+  </div>
+
+  <div id="tab-brokers" style="display:none">
+    <div id="brokers-list" style="font-size:12px">
+      <div class="empty">Загружаем топ...</div>
+    </div>
+    <p style="font-size:10px;color:#94a3a3;margin-top:8px">
+      Ранжирование по conversion rate из crawler-данных.
+    </p>
   </div>
 
   <div id="tab-sites" style="display:none">
     <ul class="sites">
       <li>🇪🇪 kv.ee — квартиры/дома/участки</li>
+      <li>🇪🇪 kinnisvara24.ee — маклер-профили</li>
       <li>🇪🇪 city24.ee — эстонский агрегатор</li>
       <li>🇪🇪 soov.ee — небольшой рынок</li>
       <li>🇪🇪 1a.ee — коммерция</li>
