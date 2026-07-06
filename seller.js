@@ -183,3 +183,116 @@ async function preReview(draft) {
   }).then(r => r.json());
   return r;   // {score, exaggerations[], recommendations[]}
 }
+
+
+// ── Seller-mode bootstrap ────────────────────────────────────────────
+// Вызывается из content.js когда URL match'ится с SELLER_PATTERNS.
+// Читает aidi_draft_id из URL или chrome.storage → fetch draft → autofill.
+
+async function bootstrapSellerMode(source) {
+  const params = new URLSearchParams(location.search);
+  let draftId = params.get("aidi_draft_id");
+  if (!draftId) {
+    // Fallback: draft сохранён в extension storage при клике "Опубликовать на kv.ee"
+    try {
+      const stored = await new Promise(r => chrome.storage.local.get(["aidi_pending_draft_id"], r));
+      draftId = stored?.aidi_pending_draft_id;
+    } catch {}
+  }
+  if (!draftId) return;
+
+  let draft;
+  try {
+    draft = await fetchDraft(draftId);
+  } catch (e) {
+    _sellerToast(`⚠ AIDI: draft ${draftId} не найден или истёк`);
+    return;
+  }
+
+  // Форма kv.ee/etc может рендериться SPA-стилем — ждём до 5с появления title-input
+  const map = FIELD_MAP[source] || {};
+  await _waitForSelector(map.title || 'input[type="text"]', 5000);
+
+  const filled = autofillForm(source, draft);
+  _sellerToast(`✓ AIDI: заполнил ${filled} полей из черновика.<br>Проверь и опубликуй.`);
+
+  // Attach live grammar check к description
+  const desc = document.querySelector(map.description || 'textarea');
+  if (desc) attachLiveCheck(desc, sug => _sellerToast(_formatSuggestions(sug)));
+
+  // Pre-review кнопка — показываем поверх формы
+  _addPreReviewButton(draft, source);
+}
+
+
+function _sellerToast(html, ttl = 8000) {
+  let el = document.getElementById("aidi-seller-toast");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "aidi-seller-toast";
+    el.style.cssText = "position:fixed;top:20px;right:20px;z-index:2147483647;" +
+      "background:#171c1c;color:#fff;padding:12px 16px;border-radius:8px;" +
+      "font:13px system-ui,-apple-system,sans-serif;max-width:340px;" +
+      "box-shadow:0 4px 16px rgba(0,0,0,0.2);line-height:1.4";
+    document.body.appendChild(el);
+  }
+  el.innerHTML = `<div style="font-weight:600;margin-bottom:4px">🤖 AIDI Insight</div>${html}`;
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.remove(), ttl);
+}
+
+
+function _formatSuggestions(sug) {
+  if (!sug?.suggestions?.length) return `✓ Score ${sug?.score || "?"}/10 — годно`;
+  return sug.suggestions.slice(0, 3).map(s =>
+    `${s.type === "warn" ? "⚠️" : "💡"} ${s.message}`
+  ).join("<br>");
+}
+
+
+function _waitForSelector(sel, timeoutMs = 5000) {
+  return new Promise((resolve) => {
+    if (document.querySelector(sel)) return resolve(true);
+    const start = Date.now();
+    const iv = setInterval(() => {
+      if (document.querySelector(sel) || Date.now() - start > timeoutMs) {
+        clearInterval(iv);
+        resolve(!!document.querySelector(sel));
+      }
+    }, 200);
+  });
+}
+
+
+function _addPreReviewButton(draft, source) {
+  if (document.getElementById("aidi-prereview-btn")) return;
+  const btn = document.createElement("button");
+  btn.id = "aidi-prereview-btn";
+  btn.textContent = "🤖 AIDI Pre-review перед публикацией";
+  btn.style.cssText = "position:fixed;bottom:20px;right:20px;z-index:2147483646;" +
+    "padding:12px 20px;background:#007782;color:#fff;border:none;border-radius:8px;" +
+    "font:600 13px system-ui,-apple-system,sans-serif;cursor:pointer;" +
+    "box-shadow:0 4px 12px rgba(0,119,130,0.4)";
+  btn.addEventListener("click", async () => {
+    btn.textContent = "⏳ анализируем...";
+    btn.disabled = true;
+    const map = FIELD_MAP[source] || {};
+    const title = document.querySelector(map.title)?.value || draft.title || "";
+    const description = document.querySelector(map.description)?.value || draft.description || "";
+    const price = parseFloat(document.querySelector(map.price)?.value) || draft.price_mid;
+    try {
+      const rev = await preReview({title, description, kind: draft.kind || "realty", price, lang: draft.lang || "ru"});
+      const items = [];
+      items.push(`<b>Score: ${rev.score}/10</b>`);
+      if (rev.exaggerations?.length) items.push(`⚠️ Преувеличения:<ul style="margin:4px 0;padding-left:18px">${rev.exaggerations.slice(0,3).map(x => `<li>${x}</li>`).join("")}</ul>`);
+      if (rev.missing?.length) items.push(`💡 Добавить:<ul style="margin:4px 0;padding-left:18px">${rev.missing.slice(0,3).map(x => `<li>${x}</li>`).join("")}</ul>`);
+      if (rev.recommendations?.length) items.push(`📝 Совет:<ul style="margin:4px 0;padding-left:18px">${rev.recommendations.slice(0,3).map(x => `<li>${x}</li>`).join("")}</ul>`);
+      _sellerToast(items.join("<br>"), 20000);
+    } catch (e) {
+      _sellerToast(`⚠ Pre-review error: ${e.message}`);
+    }
+    btn.textContent = "🤖 AIDI Pre-review перед публикацией";
+    btn.disabled = false;
+  });
+  document.body.appendChild(btn);
+}

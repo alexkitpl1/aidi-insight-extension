@@ -10,6 +10,18 @@
 
   const API = "https://api.aidi.ee";
 
+  // ── Seller mode? ─────────────────────────────────────────────────
+  // Если URL match'ится с SELLER_PATTERNS (форма публикации на портале) —
+  // запускаем seller flow (autofill + pre-review) и выходим — buyer-overlay
+  // на publish-form не нужен.
+  if (typeof isSellerPage === "function" && typeof bootstrapSellerMode === "function") {
+    const sellerSrc = isSellerPage(location.href);
+    if (sellerSrc) {
+      bootstrapSellerMode(sellerSrc).catch(e => console.warn("AIDI seller bootstrap:", e));
+      return;
+    }
+  }
+
   // ── Site profiles ─────────────────────────────────────────────────
   // Каждый сайт: pattern детекции detail-страницы + branding overlay
   // (accent-цвет из фирменной палитры сайта) + label + country.
@@ -299,8 +311,35 @@
     if (r.hidden?.length) {
       sections += `<div class="aidi-sec aidi-hidden"><b>🕵 ${t.hidden}</b><ul>${r.hidden.slice(0, 3).map(x => `<li>${escapeHtml(x)}</li>`).join("")}</ul></div>`;
     }
-    if (r.forensics?.reconstructed_facade_warning) {
-      sections += `<div class="aidi-sec aidi-facade">⚠️ ${r.forensics.notes?.[0] || "Fassaad kaetud"}</div>`;
+    // Forensics — EHR + Wayback (показываем даже без facade warning)
+    if (r.forensics) {
+      const f = r.forensics;
+      const forensicItems = [];
+      if (f.reconstructed_facade_warning) {
+        forensicItems.push(`⚠️ <b>Обшивка старой коробки:</b> ${escapeHtml(f.notes?.[0] || "Fassaad kaetud")}`);
+      }
+      // EHR building info
+      if (f.ehr_building?.build_year) {
+        const eb = f.ehr_building;
+        forensicItems.push(`🏛 <b>По EHR:</b> год постройки ${eb.build_year}${eb.construction ? `, тип «${escapeHtml(eb.construction)}»` : ""}`);
+      }
+      // Wayback price history
+      if (f.old_prices?.length) {
+        const p = f.old_prices[0];
+        if (p.price && p.year) {
+          forensicItems.push(`📉 <b>Было в ${escapeHtml(String(p.year))}:</b> ${Math.round(p.price).toLocaleString(lang === "ru" ? "ru" : "en")} €`);
+        }
+      }
+      // Дополнительные notes (не первый, тот уже показали как facade warning)
+      const extraNotes = (f.notes || []).filter((n, i) => !(i === 0 && f.reconstructed_facade_warning));
+      extraNotes.slice(0, 2).forEach(n => forensicItems.push(`💡 ${escapeHtml(n)}`));
+
+      if (forensicItems.length) {
+        sections += `<div class="aidi-sec" style="border-left:3px solid #6c3bd9;background:#f5f0fa">
+          <b>🔬 Forensics (интернет помнит):</b>
+          ${forensicItems.map(x => `<div style="margin-top:5px;font-size:12px">${x}</div>`).join("")}
+        </div>`;
+      }
     }
     // Warnings от backend — почему verdict "cant_tell" и т.д.
     if (r.warnings?.length) {
