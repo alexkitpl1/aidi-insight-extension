@@ -373,12 +373,14 @@
     }
 
     const hasFair = r.fair_price_median && r.fair_price_median > 0;
+    const nComp = r.valuator_comparables || 0;
+    const compHint = nComp >= 5 ? `<div style="font-size:10px;color:#5a6566;margin-top:4px">📊 На основе ${nComp} реальных объявлений</div>` : "";
     const pricesHtml = (hasFair || hasAsking)
       ? `<div class="aidi-prices">
           ${hasFair ? `<div><span>${t.fair}</span><b>${fmt(r.fair_price_median)}</b></div>` : ""}
           ${hasAsking ? `<div><span>${t.ask}</span><b>${fmt(r.listing.asking_price)}</b></div>` : ""}
           ${showDelta ? `<div><span>${t.delta}</span><b style="color:${deltaCol}">${deltaTxt}</b></div>` : ""}
-        </div>` : "";
+        </div>${compHint}` : "";
     body.innerHTML = `
       <div class="aidi-verdict">${verdict}</div>
       ${pricesHtml}
