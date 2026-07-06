@@ -3,7 +3,7 @@
   "name": "__MSG_appName__",
   "short_name": "AIDI Insight",
   "default_locale": "en",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "__MSG_appDesc__",
   "update_url": "https://aidi.ee/insight-updates.xml",
   "author": "AIDI (aidi.ee)",
@@ -45,12 +45,20 @@
         "https://www.kinnisvara24.ee/*",
         "https://kinnisvara24.ee/*"
       ],
-      "js": ["seller.js", "content.js"],
-      "css": ["overlay.css"],
+      "js": [
+        "seller.js",
+        "content.js"
+      ],
+      "css": [
+        "overlay.css"
+      ],
       "run_at": "document_idle"
     }
   ],
-  "permissions": ["storage", "activeTab"],
+  "permissions": [
+    "storage",
+    "activeTab"
+  ],
   "host_permissions": [
     "https://api.aidi.ee/*"
   ]

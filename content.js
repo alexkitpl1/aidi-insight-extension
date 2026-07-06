@@ -323,11 +323,37 @@
         const eb = f.ehr_building;
         forensicItems.push(`🏛 <b>По EHR:</b> год постройки ${eb.build_year}${eb.construction ? `, тип «${escapeHtml(eb.construction)}»` : ""}`);
       }
-      // Wayback price history
+      // Wayback price history (архив archive.org)
       if (f.old_prices?.length) {
         const p = f.old_prices[0];
         if (p.price && p.year) {
-          forensicItems.push(`📉 <b>Было в ${escapeHtml(String(p.year))}:</b> ${Math.round(p.price).toLocaleString(lang === "ru" ? "ru" : "en")} €`);
+          forensicItems.push(`📉 <b>Wayback ${escapeHtml(String(p.year))}:</b> ${Math.round(p.price).toLocaleString(lang === "ru" ? "ru" : "en")} €`);
+        }
+      }
+      // AIDI own price history — из нашего crawler'а (свежее чем wayback)
+      if (f.own_price_history?.length >= 2) {
+        const first = f.own_price_history[0];
+        const last = f.own_price_history[f.own_price_history.length - 1];
+        const dtDays = Math.round((last.seen_last - first.seen_first) / 86400);
+        const arrow = last.price < first.price ? "↓" : last.price > first.price ? "↑" : "→";
+        const pct = ((last.price - first.price) / first.price * 100).toFixed(0);
+        const col = last.price < first.price ? "#0e4b51" : last.price > first.price ? "#b04a3a" : "#5a6566";
+        forensicItems.push(
+          `📊 <b>AIDI трек ${dtDays}д:</b> ${Math.round(first.price).toLocaleString("ru")} € ` +
+          `<span style="color:${col};font-weight:700">${arrow} ${pct}%</span> ` +
+          `${Math.round(last.price).toLocaleString("ru")} €`
+        );
+      }
+      // Address history — этот же адрес в других объявлениях
+      if (f.address_history?.length >= 2) {
+        const prices = f.address_history.map(h => h.price).filter(Boolean);
+        if (prices.length) {
+          const min = Math.min(...prices);
+          const max = Math.max(...prices);
+          forensicItems.push(
+            `🏘 <b>На этом же адресе:</b> ${f.address_history.length} объявлений, ` +
+            `цены ${Math.round(min).toLocaleString("ru")}–${Math.round(max).toLocaleString("ru")} €`
+          );
         }
       }
       // Дополнительные notes (не первый, тот уже показали как facade warning)
