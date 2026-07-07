@@ -6,12 +6,13 @@ document.querySelectorAll(".tab").forEach(tab => {
   tab.addEventListener("click", () => {
     document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
     tab.classList.add("active");
-    ["history", "deals", "brokers", "sites", "settings"].forEach(id => {
+    ["history", "deals", "alerts", "brokers", "sites", "settings"].forEach(id => {
       const el = document.getElementById("tab-" + id);
       if (el) el.style.display = id === tab.dataset.tab ? "" : "none";
     });
     if (tab.dataset.tab === "brokers") loadBrokers();
     if (tab.dataset.tab === "deals") loadDeals();
+    if (tab.dataset.tab === "alerts") loadAlerts();
   });
 });
 
@@ -224,6 +225,97 @@ function escapeHtml(s) {
     "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
   }[c]));
 }
+
+// ── Alerts / Watchlist ─────────────────────────────────────────────
+async function loadAlerts() {
+  const stored = await chrome.storage.local.get(["aidi_watchlists"]);
+  const list = stored.aidi_watchlists || [];
+  const el = document.getElementById("alerts-list");
+  if (list.length === 0) {
+    el.innerHTML = `<div class="empty">Alerts пусто. Создай ниже.</div>`;
+  } else {
+    el.innerHTML = list.map((w, i) => `
+      <div style="padding:6px 8px;background:#f6f9f9;border-radius:6px;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="font-weight:600;font-size:12px">${escapeHtml(w.label || "(no name)")}</div>
+          <div style="font-size:10px;color:#5a6566">
+            ${w.kind} · ${w.country || ""}
+            ${w.seen_uids?.length ? `· ${w.seen_uids.length} видели` : ""}
+          </div>
+        </div>
+        <button data-idx="${i}" class="alert-delete" style="padding:3px 8px;background:#fbe9e5;color:#b04a3a;border:0;border-radius:4px;font-size:11px;cursor:pointer">×</button>
+      </div>
+    `).join("");
+    document.querySelectorAll(".alert-delete").forEach(btn => {
+      btn.addEventListener("click", async (e) => {
+        const idx = parseInt(e.target.dataset.idx);
+        const removed = list.splice(idx, 1)[0];
+        if (removed?.id) {
+          try { await fetch(`${API}/api/watchlist/${removed.id}`, { method: "DELETE" }); } catch {}
+        }
+        await chrome.storage.local.set({ aidi_watchlists: list });
+        loadAlerts();
+      });
+    });
+  }
+
+  document.getElementById("alert-kind")?.addEventListener("change", (e) => {
+    document.getElementById("realty-fields").style.display = e.target.value === "realty" ? "block" : "none";
+    document.getElementById("vehicle-fields").style.display = e.target.value === "vehicle" ? "block" : "none";
+  });
+
+  document.getElementById("alert-create")?.addEventListener("click", async () => {
+    const kind = document.getElementById("alert-kind").value;
+    const country = document.getElementById("alert-country").value;
+    const label = document.getElementById("alert-label").value.trim();
+    const price = parseFloat(document.getElementById("alert-price").value);
+
+    const body = { kind, country, label: label || null };
+    if (!isNaN(price)) body.max_price_eur = price;
+
+    if (kind === "realty") {
+      const areaMin = parseFloat(document.getElementById("alert-area-min").value);
+      const areaMax = parseFloat(document.getElementById("alert-area-max").value);
+      const addr = document.getElementById("alert-address").value.trim();
+      if (!isNaN(areaMin)) body.min_area_m2 = areaMin;
+      if (!isNaN(areaMax)) body.max_area_m2 = areaMax;
+      if (addr) body.address_contains = addr;
+    } else {
+      const brand = document.getElementById("alert-brand").value.trim().toLowerCase();
+      const model = document.getElementById("alert-model").value.trim().toLowerCase();
+      const year = parseInt(document.getElementById("alert-year").value);
+      const mile = parseInt(document.getElementById("alert-mile").value);
+      if (brand) body.brand = brand;
+      if (model) body.model = model;
+      if (!isNaN(year)) body.year_min = year;
+      if (!isNaN(mile)) body.max_mileage_km = mile;
+    }
+
+    try {
+      const r = await fetch(`${API}/api/watchlist`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const data = await r.json();
+      list.push({
+        id: data.id, kind, country, label: label || `${kind} alert`,
+        seen_uids: [], created_ts: Date.now(),
+      });
+      await chrome.storage.local.set({ aidi_watchlists: list });
+      // Reset form
+      ["alert-label", "alert-price", "alert-area-min", "alert-area-max", "alert-address",
+       "alert-brand", "alert-model", "alert-year", "alert-mile"].forEach(id => {
+        const e = document.getElementById(id); if (e) e.value = "";
+      });
+      loadAlerts();
+    } catch (e) {
+      alert("Ошибка: " + e.message);
+    }
+  });
+}
+
 
 // ── Settings — unlock code ─────────────────────────────────────────
 const input = document.getElementById("unlock-input");

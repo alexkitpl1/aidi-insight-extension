@@ -47,8 +47,9 @@
 
   <div class="tabs">
     <div class="tab active" data-tab="history">История</div>
-    <div class="tab" data-tab="deals">🔥 Deals</div>
-    <div class="tab" data-tab="brokers">Маклеры</div>
+    <div class="tab" data-tab="deals">🔥</div>
+    <div class="tab" data-tab="alerts">🔔</div>
+    <div class="tab" data-tab="brokers">👤</div>
     <div class="tab" data-tab="settings">⚙</div>
   </div>
 
@@ -92,6 +93,46 @@
       <li>🇱🇻 city24.lv — латвийский агрегатор</li>
       <li>🇱🇻 ss.lv — недвижимость + авто</li>
     </ul>
+  </div>
+
+  <div id="tab-alerts" style="display:none">
+    <div id="alerts-list" style="font-size:12px;margin-bottom:10px"></div>
+    <div style="padding:8px;background:#f6f9f9;border-radius:6px">
+      <b style="font-size:12px">Создать alert</b>
+      <div style="display:flex;gap:4px;margin-top:6px">
+        <select id="alert-kind" style="flex:1;padding:4px;border:1px solid #cfd6d6;border-radius:4px;font-size:11px">
+          <option value="realty">🏠 Realty</option>
+          <option value="vehicle">🚗 Vehicle</option>
+        </select>
+        <select id="alert-country" style="flex:1;padding:4px;border:1px solid #cfd6d6;border-radius:4px;font-size:11px">
+          <option value="EE">🇪🇪 EE</option>
+          <option value="LV" selected>🇱🇻 LV</option>
+        </select>
+      </div>
+      <input id="alert-label" placeholder="Название (напр. 'BMW ≤20k')" style="width:100%;padding:5px;margin-top:4px;border:1px solid #cfd6d6;border-radius:4px;font-size:11px;box-sizing:border-box"/>
+      <input id="alert-price" type="number" placeholder="Макс цена €" style="width:100%;padding:5px;margin-top:4px;border:1px solid #cfd6d6;border-radius:4px;font-size:11px;box-sizing:border-box"/>
+      <div id="realty-fields" style="display:block">
+        <div style="display:flex;gap:4px;margin-top:4px">
+          <input id="alert-area-min" type="number" placeholder="Мин m²" style="flex:1;padding:5px;border:1px solid #cfd6d6;border-radius:4px;font-size:11px"/>
+          <input id="alert-area-max" type="number" placeholder="Макс m²" style="flex:1;padding:5px;border:1px solid #cfd6d6;border-radius:4px;font-size:11px"/>
+        </div>
+        <input id="alert-address" placeholder="Район (напр. 'Rīga')" style="width:100%;padding:5px;margin-top:4px;border:1px solid #cfd6d6;border-radius:4px;font-size:11px;box-sizing:border-box"/>
+      </div>
+      <div id="vehicle-fields" style="display:none">
+        <div style="display:flex;gap:4px;margin-top:4px">
+          <input id="alert-brand" placeholder="Бренд (bmw)" style="flex:1;padding:5px;border:1px solid #cfd6d6;border-radius:4px;font-size:11px"/>
+          <input id="alert-model" placeholder="Модель (x5)" style="flex:1;padding:5px;border:1px solid #cfd6d6;border-radius:4px;font-size:11px"/>
+        </div>
+        <div style="display:flex;gap:4px;margin-top:4px">
+          <input id="alert-year" type="number" placeholder="Год от" style="flex:1;padding:5px;border:1px solid #cfd6d6;border-radius:4px;font-size:11px"/>
+          <input id="alert-mile" type="number" placeholder="Пробег до" style="flex:1;padding:5px;border:1px solid #cfd6d6;border-radius:4px;font-size:11px"/>
+        </div>
+      </div>
+      <button id="alert-create" style="width:100%;margin-top:6px;padding:6px;background:#0e4b51;color:#fff;border:0;border-radius:4px;font-weight:700;font-size:12px;cursor:pointer">Создать alert</button>
+    </div>
+    <p style="font-size:10px;color:#94a3a3;margin-top:6px">
+      Alerts проверяются каждые 15 мин. Chrome покажет notification когда появится новое соответствие.
+    </p>
   </div>
 
   <div id="tab-brokers" style="display:none">
