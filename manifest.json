@@ -3,7 +3,7 @@
   "name": "__MSG_appName__",
   "short_name": "AIDI Insight",
   "default_locale": "en",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "__MSG_appDesc__",
   "update_url": "https://aidi.ee/insight-updates.xml",
   "author": "AIDI (aidi.ee)",
@@ -43,7 +43,9 @@
         "https://www.1a.ee/*",
         "https://1a.ee/*",
         "https://www.kinnisvara24.ee/*",
-        "https://kinnisvara24.ee/*"
+        "https://kinnisvara24.ee/*",
+        "https://www.auto24.ee/*",
+        "https://auto24.ee/*"
       ],
       "js": [
         "seller.js",

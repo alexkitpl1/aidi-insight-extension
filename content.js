@@ -47,12 +47,31 @@
       country: "LV",
       icon: "🇱🇻",
     },
+    // ВАЖНО: ss.lv-cars до ss.lv (обе матчатся, специфичный паттерн первым)
+    "ss.lv-cars": {
+      match: /ss\.(lv|com)\/msg\/[a-z]+\/transport\/cars\/[a-z0-9\-]+\/[a-z0-9\-]+\/[a-z0-9]+\.html/,
+      accent: "#4a8f2f",
+      label: "ss.lv авто",
+      country: "LV",
+      icon: "🇱🇻",
+      vertical: "vehicle",
+    },
     "ss.lv": {
-      match: /ss\.(lv|com)\/msg\/[a-z]+\/[a-z0-9\-]+\/[a-z0-9\-]+\/[a-z0-9\-]+\/[a-z0-9\-]+\.html/,
+      match: /ss\.(lv|com)\/msg\/[a-z]+\/(?!transport)[a-z0-9\-]+\/[a-z0-9\-]+\/[a-z0-9\-]+\/[a-z0-9\-]+\.html/,
       accent: "#4a8f2f",  // зелёный ss.lv
       label: "ss.lv",
       country: "LV",
       icon: "🇱🇻",
+      vertical: "realty",
+    },
+    "auto24.ee": {
+      // /kasutatud/N или /toosoiduk/{brand}-{model}/details/N
+      match: /auto24\.ee\/(kasutatud|toosoiduk)\/[^\/]*\/?\d+/,
+      accent: "#e30613",
+      label: "auto24.ee",
+      country: "EE",
+      icon: "🇪🇪",
+      vertical: "vehicle",
     },
     "soov.ee": {
       match: /soov\.ee\/kuulutused\/\d+/,
@@ -451,9 +470,107 @@
     }[c]));
   }
 
+  // ── Vehicle mode ──────────────────────────────────────────────────
+  // Для vertical=vehicle: extract brand/model/year/mileage из DOM,
+  // POST /api/valuator/vehicle, показать verdict.
+  async function analyzeVehicle() {
+    renderStatus(`${t.checking}…`);
+    const veh = _extractVehicleData();
+    try {
+      const resp = await fetch(`${API}/api/valuator/vehicle`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(veh),
+      });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const est = await resp.json();
+      _renderVehicleReport(veh, est);
+    } catch (e) {
+      renderStatus(`⚠ ${e.message}`);
+    }
+  }
+
+  function _extractVehicleData() {
+    const url = location.href;
+    const bodyTxt = document.body.innerText || "";
+    const out = { fuel_type: "petrol", transmission: "manual", condition: "good", segment: "sedan" };
+    // ss.lv URL: /cars/{brand}/{model}/...
+    const m = url.match(/\/cars\/([a-z0-9\-]+)\/([a-z0-9\-]+)\//i);
+    if (m) { out.brand = m[1].replace("-", " "); out.model = m[2].replace("-", " "); }
+    // Year
+    const yearM = bodyTxt.match(/(?:Gads|Год выпуска|Aasta)[^0-9]{0,20}(20[0-2]\d|19[89]\d)/i);
+    if (yearM) out.year = parseInt(yearM[1]);
+    // Mileage
+    const mileM = bodyTxt.match(/(?:Nobraukums|Пробег|L[äa]bis[oõ]it)[^0-9]{0,20}(\d[\d\s]{2,})/i);
+    if (mileM) {
+      const v = parseInt(mileM[1].replace(/\s/g, ""));
+      if (v >= 100 && v <= 1000000) out.mileage_km = v;
+    }
+    // Fuel
+    const fuelM = bodyTxt.match(/(?:Degviela|Топливо|K[üu]tus)[^A-Za-z]{0,10}([A-Za-zĀ-ž]{4,15})/i);
+    if (fuelM) {
+      const f = fuelM[1].toLowerCase();
+      if (f.includes("dies") || f.includes("dīzel")) out.fuel_type = "diesel";
+      else if (f.includes("hybr") || f.includes("hibrīd")) out.fuel_type = "hybrid";
+      else if (f.includes("elektr")) out.fuel_type = "electric";
+      else if (f.includes("benz")) out.fuel_type = "petrol";
+    }
+    // Transmission
+    if (/[Aa]utom[āa]t/.test(bodyTxt)) out.transmission = "automatic";
+    else if (/[Mm]anu[āa]l/.test(bodyTxt)) out.transmission = "manual";
+    return out;
+  }
+
+  function _renderVehicleReport(veh, est) {
+    const priceEl = document.querySelector(".ads_price, .price, [class*='price']");
+    const askingText = priceEl ? priceEl.innerText.match(/\d[\d\s]*/)?.[0] : null;
+    const asking = askingText ? parseInt(askingText.replace(/\s/g, "")) : null;
+    let verdict = "❔", verdictColor = "#5a6566";
+    if (asking && est.median) {
+      const delta = (asking - est.median) / est.median;
+      if (delta < -0.10) { verdict = "🟢 Ниже рынка"; verdictColor = "#0e4b51"; }
+      else if (delta > 0.15) { verdict = "🔴 Выше рынка"; verdictColor = "#b04a3a"; }
+      else { verdict = "🟡 В рынке"; verdictColor = "#7a4b0c"; }
+    } else {
+      verdict = "❔ Цена не найдена";
+    }
+    const compHint = est.comparables_count >= 5
+      ? `<div style="font-size:10px;color:#5a6566;margin-top:4px">📊 На основе ${est.comparables_count} реальных объявлений</div>`
+      : `<div style="font-size:10px;color:#94a3a3;margin-top:4px">Оценка по бренд-benchmark</div>`;
+    const factors = [];
+    if (est.factors?.age < 1) factors.push(`возраст −${Math.round((1 - est.factors.age) * 100)}%`);
+    if (est.factors?.mileage < 1) factors.push(`пробег −${Math.round((1 - est.factors.mileage) * 100)}%`);
+    if (est.factors?.brand_mult > 1) factors.push(`бренд ×${est.factors.brand_mult}`);
+    body.innerHTML = `
+      <div class="aidi-verdict" style="color:${verdictColor}">${verdict}</div>
+      <div class="aidi-prices">
+        <div><span>Оценка</span><b>${est.median.toLocaleString("ru")} €</b></div>
+        ${asking ? `<div><span>Заявлено</span><b>${asking.toLocaleString("ru")} €</b></div>` : ""}
+      </div>
+      ${compHint}
+      <div class="aidi-sec" style="border-left:3px solid #4a8f2f;background:#f5faf0">
+        <div style="font-size:12px">
+          🚗 <b>${(veh.brand || "?").toUpperCase()} ${(veh.model || "").toUpperCase()}</b>
+          ${veh.year ? `· ${veh.year}г` : ""}
+          ${veh.mileage_km ? `· ${veh.mileage_km.toLocaleString("ru")}км` : ""}
+          ${veh.fuel_type !== "petrol" ? `· ${veh.fuel_type}` : ""}
+        </div>
+        ${factors.length ? `<div style="font-size:11px;color:#5a6566;margin-top:4px">Факторы: ${factors.join(", ")}</div>` : ""}
+      </div>
+      <div class="aidi-sec" style="font-size:11px;color:#5a6566">
+        Range: ${est.low.toLocaleString("ru")} – ${est.high.toLocaleString("ru")} €
+      </div>
+    `;
+  }
+
+
   // ── API flow ──────────────────────────────────────────────────────
   let _retryCount = 0;
   async function analyze(unlockCode) {
+    // Vehicle mode — separate path
+    if (profile.vertical === "vehicle") {
+      return analyzeVehicle();
+    }
     renderStatus(`${t.checking}…`);
     try {
       const html_snapshot = document.documentElement.outerHTML.slice(0, 500_000);
