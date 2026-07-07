@@ -129,14 +129,22 @@ async function loadBrokers() {
 }
 
 // ── Deals tab ──────────────────────────────────────────────────────
-let _dealsLoaded = false;
-async function loadDeals() {
-  if (_dealsLoaded) return;
-  _dealsLoaded = true;
+let _dealsCurrentCountry = "LV";
+let _dealsLoadedFor = null;
+async function loadDeals(country) {
+  const c = country || _dealsCurrentCountry;
+  if (_dealsLoadedFor === c) return;
+  _dealsLoadedFor = c;
+  _dealsCurrentCountry = c;
+  document.querySelectorAll(".deals-country").forEach(b => {
+    b.classList.toggle("active", b.dataset.c === c);
+    b.style.background = b.dataset.c === c ? "#e6f3f4" : "#f6f9f9";
+    b.style.borderColor = b.dataset.c === c ? "#0e4b51" : "#cfd6d6";
+  });
   const el = document.getElementById("deals-list");
+  el.innerHTML = `<div class="empty">Загружаем ${c}...</div>`;
   try {
-    // LV — там больше vehicles data. Можно later — country toggle.
-    const r = await fetch(`${API}/api/market/summary?country=LV`);
+    const r = await fetch(`${API}/api/market/summary?country=${c}`);
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     const data = await r.json();
     const parts = [];
@@ -216,9 +224,13 @@ async function loadDeals() {
     });
   } catch (e) {
     el.innerHTML = `<div class="empty">Не удалось загрузить: ${e.message}</div>`;
-    _dealsLoaded = false;
+    _dealsLoadedFor = null;
   }
 }
+
+document.querySelectorAll(".deals-country").forEach(btn => {
+  btn.addEventListener("click", () => loadDeals(btn.dataset.c));
+});
 
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, c => ({
