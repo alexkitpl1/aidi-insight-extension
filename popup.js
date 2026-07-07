@@ -169,7 +169,27 @@ async function loadDeals() {
       </div>`);
     }
 
-    // Best deals
+    // Best realty deals (сверху потому что realty — main product)
+    if (data.best_realty_deals?.length) {
+      parts.push(`<div style="padding:8px;background:#f5f0fa;border-radius:6px;border:1px solid #6c3bd9;margin-bottom:8px">
+        <b style="color:#6c3bd9">🏘 Лучшая недвижимость сейчас</b>
+        ${data.best_realty_deals.map(d => `
+          <div class="history-item" data-url="${escapeHtml(d.url)}" style="padding:6px 8px;margin-top:4px">
+            <div style="font-weight:600;font-size:12px">
+              ${escapeHtml(d.title.slice(0, 60))}
+            </div>
+            <div style="font-size:11px;color:#5a6566;margin-top:2px">
+              <b style="color:#0e4b51">${d.price_eur.toLocaleString("ru")} €</b>
+              (${d.area_m2}m², ${Math.round(d.ppm2)} €/m²)
+              <span style="color:#b04a3a;font-weight:700">${d.delta_pct}%</span>
+              vs avg
+            </div>
+          </div>
+        `).join("")}
+      </div>`);
+    }
+
+    // Best vehicle deals
     if (data.best_vehicle_deals?.length) {
       parts.push(`<div style="padding:8px;background:#e6f3f4;border-radius:6px;border:1px solid #0e4b51">
         <b style="color:#0e4b51">🔥 Лучшие сделки прямо сейчас</b>

@@ -3,7 +3,7 @@
   "name": "__MSG_appName__",
   "short_name": "AIDI Insight",
   "default_locale": "en",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "description": "__MSG_appDesc__",
   "update_url": "https://aidi.ee/insight-updates.xml",
   "author": "AIDI (aidi.ee)",
