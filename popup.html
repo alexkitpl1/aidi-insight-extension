@@ -47,8 +47,8 @@
 
   <div class="tabs">
     <div class="tab active" data-tab="history">История</div>
-    <div class="tab" data-tab="brokers">Топ маклеров</div>
-    <div class="tab" data-tab="sites">Сайты</div>
+    <div class="tab" data-tab="deals">🔥 Deals</div>
+    <div class="tab" data-tab="brokers">Маклеры</div>
     <div class="tab" data-tab="settings">⚙</div>
   </div>
 
@@ -72,12 +72,12 @@
     <button id="export-favorites" style="width:100%;margin-top:6px;padding:6px;background:#f6f9f9;border:1px solid #cfd6d6;border-radius:6px;font-size:11px;cursor:pointer;color:#0e4b51">📋 Скопировать URLs в буфер</button>
   </div>
 
-  <div id="tab-brokers" style="display:none">
-    <div id="brokers-list" style="font-size:12px">
-      <div class="empty">Загружаем топ...</div>
+  <div id="tab-deals" style="display:none">
+    <div id="deals-list" style="font-size:12px">
+      <div class="empty">Загружаем сделки...</div>
     </div>
     <p style="font-size:10px;color:#94a3a3;margin-top:8px">
-      Ранжирование по conversion rate из crawler-данных.
+      Авто и недвижимость с ценой ниже средней по классу. Data: crawler live.
     </p>
   </div>
 
@@ -88,9 +88,19 @@
       <li>🇪🇪 city24.ee — эстонский агрегатор</li>
       <li>🇪🇪 soov.ee — небольшой рынок</li>
       <li>🇪🇪 1a.ee — коммерция</li>
+      <li>🇪🇪 auto24.ee — авто (Estonia)</li>
       <li>🇱🇻 city24.lv — латвийский агрегатор</li>
-      <li>🇱🇻 ss.lv — самая большая доска в Латвии</li>
+      <li>🇱🇻 ss.lv — недвижимость + авто</li>
     </ul>
+  </div>
+
+  <div id="tab-brokers" style="display:none">
+    <div id="brokers-list" style="font-size:12px">
+      <div class="empty">Загружаем топ...</div>
+    </div>
+    <p style="font-size:10px;color:#94a3a3;margin-top:8px">
+      Ранжирование по conversion rate из crawler-данных.
+    </p>
   </div>
 
   <div id="tab-settings" style="display:none">

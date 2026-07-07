@@ -6,11 +6,12 @@ document.querySelectorAll(".tab").forEach(tab => {
   tab.addEventListener("click", () => {
     document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
     tab.classList.add("active");
-    ["history", "brokers", "sites", "settings"].forEach(id => {
+    ["history", "deals", "brokers", "sites", "settings"].forEach(id => {
       const el = document.getElementById("tab-" + id);
       if (el) el.style.display = id === tab.dataset.tab ? "" : "none";
     });
     if (tab.dataset.tab === "brokers") loadBrokers();
+    if (tab.dataset.tab === "deals") loadDeals();
   });
 });
 
@@ -123,6 +124,78 @@ async function loadBrokers() {
   } catch (e) {
     el.innerHTML = `<div class="empty">Не удалось загрузить: ${e.message}</div>`;
     _brokersLoaded = false;  // retry на next click
+  }
+}
+
+// ── Deals tab ──────────────────────────────────────────────────────
+let _dealsLoaded = false;
+async function loadDeals() {
+  if (_dealsLoaded) return;
+  _dealsLoaded = true;
+  const el = document.getElementById("deals-list");
+  try {
+    // LV — там больше vehicles data. Можно later — country toggle.
+    const r = await fetch(`${API}/api/market/summary?country=LV`);
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const data = await r.json();
+    const parts = [];
+
+    // Realty summary
+    if (data.realty?.length) {
+      parts.push(`<div style="padding:8px;background:#f6f9f9;border-radius:6px;margin-bottom:8px">
+        <b>🏠 Недвижимость LV</b>
+        ${data.realty.map(r => `
+          <div style="margin-top:4px;font-size:11px;color:#5a6566">
+            ${r.source}: ${r.total} объявлений
+            ${r.avg_price_per_m2_eur ? `· ${r.avg_price_per_m2_eur.toLocaleString("ru")} €/м² avg` : ""}
+          </div>
+        `).join("")}
+      </div>`);
+    }
+
+    // Vehicle by brand
+    if (data.vehicles_by_brand?.length) {
+      parts.push(`<div style="padding:8px;background:#f6f9f9;border-radius:6px;margin-bottom:8px">
+        <b>🚗 Авто по брендам</b>
+        ${data.vehicles_by_brand.slice(0, 8).map(v => `
+          <div style="margin-top:4px;font-size:11px">
+            <b>${escapeHtml(v.brand.toUpperCase())}</b>
+            <span style="color:#5a6566">
+              ${v.count} шт, ${v.year_range[0]}–${v.year_range[1]}г,
+              avg ${Math.round(v.avg_price_eur/1000)}k€
+            </span>
+          </div>
+        `).join("")}
+      </div>`);
+    }
+
+    // Best deals
+    if (data.best_vehicle_deals?.length) {
+      parts.push(`<div style="padding:8px;background:#e6f3f4;border-radius:6px;border:1px solid #0e4b51">
+        <b style="color:#0e4b51">🔥 Лучшие сделки прямо сейчас</b>
+        ${data.best_vehicle_deals.map(d => `
+          <div class="history-item" data-url="${escapeHtml(d.url)}" style="padding:6px 8px;margin-top:4px">
+            <div style="font-weight:600">
+              ${escapeHtml(d.brand.toUpperCase())} ${escapeHtml(d.model.toUpperCase())} ${d.year || "?"}
+            </div>
+            <div style="font-size:11px;color:#5a6566">
+              ${d.mileage_km ? `${(d.mileage_km/1000).toFixed(0)}k км · ` : ""}
+              <b style="color:#0e4b51">${d.price_eur.toLocaleString("ru")} €</b>
+              <span style="color:#b04a3a;font-weight:700">${d.delta_pct}%</span>
+              (avg ${d.avg_similar_eur.toLocaleString("ru")} €)
+            </div>
+          </div>
+        `).join("")}
+      </div>`);
+    }
+
+    el.innerHTML = parts.join("") || `<div class="empty">Нет данных</div>`;
+    document.querySelectorAll("#deals-list .history-item").forEach(x => {
+      x.addEventListener("click", () => chrome.tabs.create({ url: x.dataset.url }));
+    });
+  } catch (e) {
+    el.innerHTML = `<div class="empty">Не удалось загрузить: ${e.message}</div>`;
+    _dealsLoaded = false;
   }
 }
 
