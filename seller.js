@@ -222,6 +222,53 @@ async function bootstrapSellerMode(source) {
 
   // Pre-review кнопка — показываем поверх формы
   _addPreReviewButton(draft, source);
+  _addGenerateAdButton(draft, source);
+}
+
+
+// LoRA-generated Estonian ad — заполняет textarea если backend вернул текст
+function _addGenerateAdButton(draft, source) {
+  if (document.getElementById("aidi-generate-btn")) return;
+  const btn = document.createElement("button");
+  btn.id = "aidi-generate-btn";
+  btn.textContent = "✨ AIDI: сгенерировать текст объявления";
+  btn.style.cssText = "position:fixed;bottom:74px;right:20px;z-index:2147483646;" +
+    "padding:12px 20px;background:#6c3bd9;color:#fff;border:none;border-radius:8px;" +
+    "font:600 13px system-ui,-apple-system,sans-serif;cursor:pointer;" +
+    "box-shadow:0 4px 12px rgba(108,59,217,0.4)";
+  btn.addEventListener("click", async () => {
+    btn.textContent = "⏳ генерируем (3-5с)...";
+    btn.disabled = true;
+    const map = FIELD_MAP[source] || {};
+    // Читаем текущие attributes из формы или из draft
+    const address = document.querySelector(map.address)?.value || draft.address || "";
+    const rooms = parseInt(document.querySelector(map.rooms)?.value) || draft.rooms;
+    const area = parseFloat(document.querySelector(map.area)?.value) || draft.area_m2;
+    const price = parseFloat(document.querySelector(map.price)?.value) || draft.price_mid;
+    try {
+      const r = await fetch("https://api.aidi.ee/api/generate/listing-copy", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+          address, rooms, area_m2: area, price_eur: price,
+          build_year: draft.build_year, max_tokens: 350, temperature: 0.7,
+        }),
+      });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const data = await r.json();
+      const desc = document.querySelector(map.description);
+      if (desc) {
+        desc.value = data.text.trim();
+        desc.dispatchEvent(new Event("input", {bubbles: true}));
+      }
+      _sellerToast(`✨ AIDI сгенерировал текст (${data.tokens_per_sec?.toFixed(0) || "?"} tok/s). Проверь и отредактируй.`, 8000);
+    } catch (e) {
+      _sellerToast(`⚠ Generation failed: ${e.message}`, 6000);
+    }
+    btn.textContent = "✨ AIDI: сгенерировать текст объявления";
+    btn.disabled = false;
+  });
+  document.body.appendChild(btn);
 }
 
 
