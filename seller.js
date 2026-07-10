@@ -240,11 +240,21 @@ function _addGenerateAdButton(draft, source) {
     btn.textContent = "⏳ генерируем (3-5с)...";
     btn.disabled = true;
     const map = FIELD_MAP[source] || {};
-    // Читаем текущие attributes из формы или из draft
+    // Читаем current attributes из формы или из draft.
+    // querySelectorAll + max — селектор может матчить несколько inputs (filter + listing).
+    const _maxNum = (sel, min = 0) => {
+      if (!sel) return NaN;
+      let best = NaN;
+      document.querySelectorAll(sel).forEach(el => {
+        const v = parseFloat(el.value);
+        if (!isNaN(v) && v >= min && (isNaN(best) || v > best)) best = v;
+      });
+      return best;
+    };
     const address = document.querySelector(map.address)?.value || draft.address || "";
-    const rooms = parseInt(document.querySelector(map.rooms)?.value) || draft.rooms;
-    const area = parseFloat(document.querySelector(map.area)?.value) || draft.area_m2;
-    const price = parseFloat(document.querySelector(map.price)?.value) || draft.price_mid;
+    const rooms = _maxNum(map.rooms, 1) || draft.rooms;
+    const area = _maxNum(map.area, 5) || draft.area_m2;
+    const price = _maxNum(map.price, 1000) || draft.price_mid;
     try {
       const r = await fetch("https://api.aidi.ee/api/generate/listing-copy", {
         method: "POST",
