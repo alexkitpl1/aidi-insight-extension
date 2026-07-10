@@ -4,11 +4,15 @@ const API = "https://api.aidi.ee";
 
 document.querySelectorAll(".tab").forEach(tab => {
   tab.addEventListener("click", () => {
-    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    document.querySelectorAll(".tab").forEach(t => {
+      t.classList.remove("active");
+      t.setAttribute("aria-selected", "false");
+    });
     tab.classList.add("active");
+    tab.setAttribute("aria-selected", "true");
     ["history", "deals", "alerts", "brokers", "sites", "settings"].forEach(id => {
       const el = document.getElementById("tab-" + id);
-      if (el) el.style.display = id === tab.dataset.tab ? "" : "none";
+      if (el) el.hidden = id !== tab.dataset.tab;
     });
     if (tab.dataset.tab === "brokers") loadBrokers();
     if (tab.dataset.tab === "deals") loadDeals();
@@ -17,12 +21,14 @@ document.querySelectorAll(".tab").forEach(tab => {
 });
 
 // ── History ────────────────────────────────────────────────────────
-const VERDICT_STYLE = {
-  good_deal:  { bg: "#d7ecec", color: "#0e4b51", text: "🟢" },
-  fair:       { bg: "#f3e6d3", color: "#7a4b0c", text: "🟡" },
-  overpriced: { bg: "#fbe9e5", color: "#b04a3a", text: "🔴" },
-  underpriced:{ bg: "#f3e6d3", color: "#7a4b0c", text: "⚠️" },
-  cant_tell:  { bg: "#eef1f1", color: "#5a6566", text: "❔" },
+// Semantic verdict labels — icon (dot) + text, not color-only. Applied
+// via .verdict + .v-{code} CSS classes (see popup.css).
+const VERDICT_LABEL = {
+  good_deal:   "Ниже рынка",
+  fair:        "В рынке",
+  overpriced:  "Выше рынка",
+  underpriced: "Знач. ниже",
+  cant_tell:   "Мало данных",
 };
 
 let _historyAll = [];
@@ -47,11 +53,14 @@ function renderHistory() {
     return;
   }
   list.innerHTML = items.slice(0, 30).map(it => {
-    const s = VERDICT_STYLE[it.verdict] || VERDICT_STYLE.cant_tell;
+    const code = it.verdict || "cant_tell";
+    const label = VERDICT_LABEL[code] || VERDICT_LABEL.cant_tell;
     return `
-      <div class="history-item" data-url="${it.url}">
+      <div class="history-item" data-url="${it.url}" role="listitem" tabindex="0">
         <div>
-          <span class="h-verdict" style="background:${s.bg};color:${s.color}">${s.text}</span>
+          <span class="verdict v-${code}" aria-label="${label}">
+            <span class="verdict-dot" aria-hidden="true"></span>${label}
+          </span>
           <span class="h-title">${escapeHtml(it.title || "—")}</span>
         </div>
         <div class="h-url">${escapeHtml(new URL(it.url).hostname)}</div>
@@ -136,10 +145,10 @@ async function loadDeals(country) {
   if (_dealsLoadedFor === c) return;
   _dealsLoadedFor = c;
   _dealsCurrentCountry = c;
-  document.querySelectorAll(".deals-country").forEach(b => {
-    b.classList.toggle("active", b.dataset.c === c);
-    b.style.background = b.dataset.c === c ? "#e6f3f4" : "#f6f9f9";
-    b.style.borderColor = b.dataset.c === c ? "#0e4b51" : "#cfd6d6";
+  document.querySelectorAll(".country-btn").forEach(b => {
+    const on = b.dataset.c === c;
+    b.classList.toggle("active", on);
+    b.setAttribute("aria-pressed", on ? "true" : "false");
   });
   const el = document.getElementById("deals-list");
   el.innerHTML = `<div class="empty">Загружаем ${c}...</div>`;
@@ -228,7 +237,7 @@ async function loadDeals(country) {
   }
 }
 
-document.querySelectorAll(".deals-country").forEach(btn => {
+document.querySelectorAll(".country-btn").forEach(btn => {
   btn.addEventListener("click", () => loadDeals(btn.dataset.c));
 });
 
@@ -272,8 +281,8 @@ async function loadAlerts() {
   }
 
   document.getElementById("alert-kind")?.addEventListener("change", (e) => {
-    document.getElementById("realty-fields").style.display = e.target.value === "realty" ? "block" : "none";
-    document.getElementById("vehicle-fields").style.display = e.target.value === "vehicle" ? "block" : "none";
+    document.getElementById("realty-fields").hidden = e.target.value !== "realty";
+    document.getElementById("vehicle-fields").hidden = e.target.value !== "vehicle";
   });
 
   document.getElementById("alert-create")?.addEventListener("click", async () => {

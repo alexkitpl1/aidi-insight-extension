@@ -1,166 +1,163 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
   <meta charset="utf-8">
   <title>AIDI Insight</title>
-  <style>
-    body {
-      width: 340px;
-      margin: 0;
-      padding: 14px;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      font-size: 14px;
-      color: #171c1c;
-    }
-    h1 { margin: 0 0 2px; font-size: 15px; color: #0e4b51; }
-    p.sub { color: #5a6566; font-size: 12px; margin: 2px 0 12px; }
-    .tabs { display: flex; gap: 6px; margin-bottom: 10px; }
-    .tab {
-      flex: 1; padding: 6px 8px; background: #f6f9f9;
-      border-radius: 8px; text-align: center; font-size: 12px;
-      cursor: pointer; border: 1px solid transparent;
-    }
-    .tab.active { background: #e6f3f4; border-color: #0e4b51; font-weight: 700; color: #0e4b51; }
-    .sites { list-style: none; padding: 0; margin: 8px 0; font-size: 12px; }
-    .sites li { padding: 3px 0; color: #5a6566; }
-    .history-item {
-      padding: 8px 10px; border-radius: 8px; background: #f6f9f9;
-      margin-bottom: 6px; font-size: 12px; cursor: pointer;
-    }
-    .history-item:hover { background: #e6f3f4; }
-    .history-item .h-title { font-weight: 600; color: #171c1c; }
-    .history-item .h-verdict { display: inline-block; padding: 1px 6px; border-radius: 4px; font-size: 11px; margin-right: 4px; }
-    .history-item .h-url { color: #94a3a3; font-size: 11px; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .empty { color: #94a3a3; text-align: center; padding: 20px; font-size: 12px; }
-    .cta {
-      display: block; text-align: center; padding: 10px 12px;
-      background: #0e4b51; color: #fff; text-decoration: none;
-      border-radius: 8px; font-weight: 700; font-size: 13px; margin-top: 10px;
-    }
-    .foot { margin-top: 12px; font-size: 11px; color: #94a3a3; text-align: center; }
-    .foot a { color: #007782; text-decoration: none; }
-  </style>
+  <link rel="stylesheet" href="popup.css">
 </head>
 <body>
-  <h1>🤖 AIDI Insight</h1>
-  <p class="sub">AI-анализ на 7 порталах недвижимости EE + LV</p>
+  <header class="hdr">
+    <h1>AIDI Insight</h1>
+    <p class="sub">AI-анализ на 7 порталах недвижимости EE + LV</p>
+  </header>
 
-  <div class="tabs">
-    <div class="tab active" data-tab="history">История</div>
-    <div class="tab" data-tab="deals">🔥</div>
-    <div class="tab" data-tab="alerts">🔔</div>
-    <div class="tab" data-tab="brokers">👤</div>
-    <div class="tab" data-tab="settings">⚙</div>
-  </div>
+  <nav class="tabs" role="tablist" aria-label="Разделы">
+    <button class="tab active" data-tab="history" role="tab" aria-selected="true" aria-controls="tab-history">
+      <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8v4l3 3M3 12a9 9 0 1 0 3-6.7L3 8V3"/></svg>
+      <span>История</span>
+    </button>
+    <button class="tab" data-tab="deals" role="tab" aria-selected="false" aria-controls="tab-deals">
+      <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12l-8 8-8-8 8-8 8 8zm-8-4v4l3 2"/></svg>
+      <span>Deals</span>
+    </button>
+    <button class="tab" data-tab="alerts" role="tab" aria-selected="false" aria-controls="tab-alerts">
+      <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+      <span>Alerts</span>
+    </button>
+    <button class="tab" data-tab="brokers" role="tab" aria-selected="false" aria-controls="tab-brokers">
+      <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+      <span>Brokers</span>
+    </button>
+    <button class="tab" data-tab="settings" role="tab" aria-selected="false" aria-controls="tab-settings">
+      <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1A2 2 0 1 1 4.3 17l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1A2 2 0 1 1 7 4.3l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+      <span>Настр.</span>
+    </button>
+  </nav>
 
-  <div id="tab-history">
-    <div style="display:flex;gap:6px;margin-bottom:8px;font-size:11px">
-      <select id="filter-verdict" style="flex:1;padding:4px 6px;border:1px solid #cfd6d6;border-radius:6px">
+  <section id="tab-history" role="tabpanel" aria-labelledby="tab-history">
+    <div class="field-row">
+      <label class="sr-only" for="filter-verdict">Фильтр по вердикту</label>
+      <select id="filter-verdict">
         <option value="">Все verdicts</option>
-        <option value="good_deal">🟢 Ниже рынка</option>
-        <option value="fair">🟡 В рынке</option>
-        <option value="overpriced">🔴 Выше рынка</option>
-        <option value="underpriced">⚠️ Знач. ниже</option>
-        <option value="cant_tell">❔ Мало данных</option>
+        <option value="good_deal">Ниже рынка</option>
+        <option value="fair">В рынке</option>
+        <option value="overpriced">Выше рынка</option>
+        <option value="underpriced">Значительно ниже</option>
+        <option value="cant_tell">Мало данных</option>
       </select>
-      <select id="sort-by" style="flex:1;padding:4px 6px;border:1px solid #cfd6d6;border-radius:6px">
+      <label class="sr-only" for="sort-by">Порядок</label>
+      <select id="sort-by">
         <option value="ts_desc">Свежие</option>
         <option value="ts_asc">Старые</option>
         <option value="title_asc">По названию</option>
       </select>
     </div>
-    <div id="history-list"><div class="empty">Пока пусто. Открой любое объявление на kv.ee/city24/ss.lv</div></div>
-    <button id="export-favorites" style="width:100%;margin-top:6px;padding:6px;background:#f6f9f9;border:1px solid #cfd6d6;border-radius:6px;font-size:11px;cursor:pointer;color:#0e4b51">📋 Скопировать URLs в буфер</button>
-  </div>
-
-  <div id="tab-deals" style="display:none">
-    <div style="display:flex;gap:4px;margin-bottom:6px">
-      <button class="deals-country active" data-c="LV" style="flex:1;padding:5px;background:#e6f3f4;border:1px solid #0e4b51;border-radius:6px;font-size:11px;cursor:pointer">🇱🇻 LV</button>
-      <button class="deals-country" data-c="EE" style="flex:1;padding:5px;background:#f6f9f9;border:1px solid #cfd6d6;border-radius:6px;font-size:11px;cursor:pointer">🇪🇪 EE</button>
+    <div id="history-list" role="list">
+      <div class="empty">Пока пусто. Открой любое объявление на kv.ee, city24 или ss.lv — AI посчитает market fit.</div>
     </div>
-    <div id="deals-list" style="font-size:12px">
+    <button id="export-favorites" class="btn btn-secondary" type="button" style="margin-top: var(--space-2)">Скопировать URLs</button>
+  </section>
+
+  <section id="tab-deals" role="tabpanel" hidden aria-labelledby="tab-deals">
+    <div class="country-toggle" role="group" aria-label="Страна">
+      <button class="country-btn active" data-c="LV" type="button" aria-pressed="true">Латвия (LV)</button>
+      <button class="country-btn" data-c="EE" type="button" aria-pressed="false">Эстония (EE)</button>
+    </div>
+    <div id="deals-list">
       <div class="empty">Загружаем сделки...</div>
     </div>
-    <p style="font-size:10px;color:#94a3a3;margin-top:8px">
-      Авто и недвижимость с ценой ниже средней по классу. Data: crawler live.
-    </p>
-  </div>
+    <p class="hint">Авто и недвижимость с ценой ниже средней по классу.</p>
+  </section>
 
-  <div id="tab-sites" style="display:none">
+  <section id="tab-sites" role="tabpanel" hidden>
     <ul class="sites">
-      <li>🇪🇪 kv.ee — квартиры/дома/участки</li>
-      <li>🇪🇪 kinnisvara24.ee — маклер-профили</li>
-      <li>🇪🇪 city24.ee — эстонский агрегатор</li>
-      <li>🇪🇪 soov.ee — небольшой рынок</li>
-      <li>🇪🇪 1a.ee — коммерция</li>
-      <li>🇪🇪 auto24.ee — авто (Estonia)</li>
-      <li>🇱🇻 city24.lv — латвийский агрегатор</li>
-      <li>🇱🇻 ss.lv — недвижимость + авто</li>
+      <li>kv.ee — квартиры / дома / участки (EE)</li>
+      <li>kinnisvara24.ee — маклер-профили (EE)</li>
+      <li>city24.ee — агрегатор (EE)</li>
+      <li>soov.ee — небольшой рынок (EE)</li>
+      <li>1a.ee — коммерция (EE)</li>
+      <li>auto24.ee — автомобили (EE)</li>
+      <li>city24.lv — агрегатор (LV)</li>
+      <li>ss.lv — недвижимость + авто (LV)</li>
     </ul>
-  </div>
+  </section>
 
-  <div id="tab-alerts" style="display:none">
-    <div id="alerts-list" style="font-size:12px;margin-bottom:10px"></div>
-    <div style="padding:8px;background:#f6f9f9;border-radius:6px">
-      <b style="font-size:12px">Создать alert</b>
-      <div style="display:flex;gap:4px;margin-top:6px">
-        <select id="alert-kind" style="flex:1;padding:4px;border:1px solid #cfd6d6;border-radius:4px;font-size:11px">
-          <option value="realty">🏠 Realty</option>
-          <option value="vehicle">🚗 Vehicle</option>
+  <section id="tab-alerts" role="tabpanel" hidden aria-labelledby="tab-alerts">
+    <div id="alerts-list"></div>
+    <div class="panel">
+      <p class="panel-title">Создать alert</p>
+      <div class="field-row">
+        <label class="sr-only" for="alert-kind">Тип</label>
+        <select id="alert-kind">
+          <option value="realty">Недвижимость</option>
+          <option value="vehicle">Автомобиль</option>
         </select>
-        <select id="alert-country" style="flex:1;padding:4px;border:1px solid #cfd6d6;border-radius:4px;font-size:11px">
-          <option value="EE">🇪🇪 EE</option>
-          <option value="LV" selected>🇱🇻 LV</option>
+        <label class="sr-only" for="alert-country">Страна</label>
+        <select id="alert-country">
+          <option value="EE">Эстония</option>
+          <option value="LV" selected>Латвия</option>
         </select>
       </div>
-      <input id="alert-label" placeholder="Название (напр. 'BMW ≤20k')" style="width:100%;padding:5px;margin-top:4px;border:1px solid #cfd6d6;border-radius:4px;font-size:11px;box-sizing:border-box"/>
-      <input id="alert-price" type="number" placeholder="Макс цена €" style="width:100%;padding:5px;margin-top:4px;border:1px solid #cfd6d6;border-radius:4px;font-size:11px;box-sizing:border-box"/>
-      <div id="realty-fields" style="display:block">
-        <div style="display:flex;gap:4px;margin-top:4px">
-          <input id="alert-area-min" type="number" placeholder="Мин m²" style="flex:1;padding:5px;border:1px solid #cfd6d6;border-radius:4px;font-size:11px"/>
-          <input id="alert-area-max" type="number" placeholder="Макс m²" style="flex:1;padding:5px;border:1px solid #cfd6d6;border-radius:4px;font-size:11px"/>
+      <label class="sr-only" for="alert-label">Название</label>
+      <input id="alert-label" placeholder="Название (напр. «BMW ≤20k»)" style="margin-bottom: var(--space-2)" />
+      <label class="sr-only" for="alert-price">Максимальная цена</label>
+      <input id="alert-price" type="number" placeholder="Максимальная цена, €" style="margin-bottom: var(--space-2)" />
+      <div id="realty-fields">
+        <div class="field-row">
+          <label class="sr-only" for="alert-area-min">Мин площадь</label>
+          <input id="alert-area-min" type="number" placeholder="Мин m²" />
+          <label class="sr-only" for="alert-area-max">Макс площадь</label>
+          <input id="alert-area-max" type="number" placeholder="Макс m²" />
         </div>
-        <input id="alert-address" placeholder="Район (напр. 'Rīga')" style="width:100%;padding:5px;margin-top:4px;border:1px solid #cfd6d6;border-radius:4px;font-size:11px;box-sizing:border-box"/>
+        <label class="sr-only" for="alert-address">Район</label>
+        <input id="alert-address" placeholder="Район (напр. «Rīga»)" />
       </div>
-      <div id="vehicle-fields" style="display:none">
-        <div style="display:flex;gap:4px;margin-top:4px">
-          <input id="alert-brand" placeholder="Бренд (bmw)" style="flex:1;padding:5px;border:1px solid #cfd6d6;border-radius:4px;font-size:11px"/>
-          <input id="alert-model" placeholder="Модель (x5)" style="flex:1;padding:5px;border:1px solid #cfd6d6;border-radius:4px;font-size:11px"/>
+      <div id="vehicle-fields" hidden>
+        <div class="field-row">
+          <label class="sr-only" for="alert-brand">Бренд</label>
+          <input id="alert-brand" placeholder="Бренд (bmw)" />
+          <label class="sr-only" for="alert-model">Модель</label>
+          <input id="alert-model" placeholder="Модель (x5)" />
         </div>
-        <div style="display:flex;gap:4px;margin-top:4px">
-          <input id="alert-year" type="number" placeholder="Год от" style="flex:1;padding:5px;border:1px solid #cfd6d6;border-radius:4px;font-size:11px"/>
-          <input id="alert-mile" type="number" placeholder="Пробег до" style="flex:1;padding:5px;border:1px solid #cfd6d6;border-radius:4px;font-size:11px"/>
+        <div class="field-row">
+          <label class="sr-only" for="alert-year">Год</label>
+          <input id="alert-year" type="number" placeholder="Год от" />
+          <label class="sr-only" for="alert-mile">Пробег</label>
+          <input id="alert-mile" type="number" placeholder="Пробег до" />
         </div>
       </div>
-      <button id="alert-create" style="width:100%;margin-top:6px;padding:6px;background:#0e4b51;color:#fff;border:0;border-radius:4px;font-weight:700;font-size:12px;cursor:pointer">Создать alert</button>
+      <button id="alert-create" class="btn btn-primary" type="button" style="margin-top: var(--space-2)">Создать alert</button>
     </div>
-    <p style="font-size:10px;color:#94a3a3;margin-top:6px">
-      Alerts проверяются каждые 15 мин. Chrome покажет notification когда появится новое соответствие.
-    </p>
-  </div>
+    <p class="hint">Проверка каждые 15 минут. Chrome покажет уведомление при новом совпадении.</p>
+  </section>
 
-  <div id="tab-brokers" style="display:none">
-    <div id="brokers-list" style="font-size:12px">
-      <div class="empty">Загружаем топ...</div>
+  <section id="tab-brokers" role="tabpanel" hidden aria-labelledby="tab-brokers">
+    <div id="brokers-list">
+      <div class="empty">Загружаем топ маклеров...</div>
     </div>
-    <p style="font-size:10px;color:#94a3a3;margin-top:8px">
-      Ранжирование по conversion rate из crawler-данных.
-    </p>
-  </div>
+    <p class="hint">Ранжирование по conversion rate из crawler-данных.</p>
+  </section>
 
-  <div id="tab-settings" style="display:none">
-    <label style="display:block;margin-bottom:6px;font-size:12px;color:#5a6566">Код доступа (UNLOCK)</label>
-    <input id="unlock-input" placeholder="AIDI2026" style="width:100%;padding:8px 10px;border:1px solid #cfd6d6;border-radius:8px;font-size:13px;box-sizing:border-box" />
-    <button id="unlock-save" style="width:100%;margin-top:8px;padding:8px 12px;background:#0e4b51;color:#fff;border:0;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer">Сохранить</button>
-    <div id="settings-msg" style="font-size:11px;color:#0e4b51;margin-top:6px"></div>
-  </div>
+  <section id="tab-settings" role="tabpanel" hidden aria-labelledby="tab-settings">
+    <label for="unlock-input" style="display:block; margin-bottom:var(--space-1); font-size:var(--font-xs); color:var(--color-text-secondary)">
+      Код доступа (UNLOCK)
+    </label>
+    <input id="unlock-input" placeholder="AIDI2026" autocomplete="off" />
+    <button id="unlock-save" class="btn btn-primary" type="button" style="margin-top: var(--space-2)">Сохранить</button>
+    <div id="settings-msg" role="status" aria-live="polite" style="font-size:var(--font-xs); color:var(--color-primary); margin-top:var(--space-2)"></div>
+  </section>
 
-  <a class="cta" href="https://aidi.ee/honest" target="_blank">Открыть на aidi.ee →</a>
+  <a class="cta" href="https://aidi.ee/honest" target="_blank" rel="noopener noreferrer">
+    Открыть на aidi.ee
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+      <path d="M7 17L17 7M8 7h9v9"/>
+    </svg>
+  </a>
 
-  <div class="foot">
-    Powered by <a href="https://aidi.ee" target="_blank">aidi.ee</a>
-    · <a href="https://aidi.ee/privacy" target="_blank">Privacy</a>
-  </div>
+  <footer class="foot">
+    Powered by <a href="https://aidi.ee" target="_blank" rel="noopener noreferrer">aidi.ee</a>
+    · <a href="https://aidi.ee/privacy" target="_blank" rel="noopener noreferrer">Privacy</a>
+  </footer>
 
   <script src="popup.js"></script>
 </body>
